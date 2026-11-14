@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The app shows its version (build date and time) at the bottom of each screen.
+- Layout: the benchtop pattern repeats without visible joins.
 - Layout: the 3D benchtop can show a photo of the real surface.
 - Layout: a 3D view of the kitchen (all walls, window, appliances, tiles from photos), following the current choices.
 - Layout: walls can be placed in the room, have a window, and include a sink cupboard.

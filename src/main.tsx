@@ -11,6 +11,9 @@ import { openSharedLink, sharedLinkId } from './budget/sharedLink';
 import { replaceProject } from './budget/model';
 import './budget/budget.css';
 
+declare const __BUILD__: string;
+const BUILD = new Date(__BUILD__).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+
 type Tab = 'budget' | 'layout' | 'photos' | 'plans';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'budget', label: 'Costs' },
@@ -105,6 +108,7 @@ function Root() {
           {tab === 'budget' && <BudgetView project={project} changed={changed} />}
           {tab === 'layout' && <LayoutView project={project} changed={changed} />}
           {tab === 'photos' && <PhotosView project={project} changed={changed} measure={measure} />}
+          <p class="build" data-testid="build">Planbench version: {BUILD}</p>
         </main>
       )}
     </>

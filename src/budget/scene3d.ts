@@ -95,7 +95,8 @@ export async function mountKitchen(
   const floorImg = photos.floor ? await loadImage(photos.floor) : null;
   const benchImg = photos.bench && l.benchRepeat > 0 ? await loadImage(photos.bench) : null;
   const benchTex = benchImg ? track(new THREE.Texture(benchImg)) : null;
-  if (benchTex) { benchTex.wrapS = benchTex.wrapT = THREE.RepeatWrapping; benchTex.colorSpace = THREE.SRGBColorSpace; benchTex.anisotropy = 8; benchTex.needsUpdate = true; }
+  // Each repeat is flipped against its neighbour, so the pattern runs on without visible joins.
+  if (benchTex) { benchTex.wrapS = benchTex.wrapT = THREE.MirroredRepeatWrapping; benchTex.colorSpace = THREE.SRGBColorSpace; benchTex.anisotropy = 8; benchTex.needsUpdate = true; }
   const splashTile = track(tileTexture(splashImg, l.tileW || 300, l.tileH || 300, splashImg ? l.splashRepeat : 0, '#e6ecef', '#f5f5f2'));
   const floorTile = track(tileTexture(floorImg, l.floorTileW || 600, l.floorTileH || 600, 0, '#cfd3d6', '#b9bdc0'));
 

@@ -8,9 +8,10 @@
     <link rel="stylesheet" href="/src/ui/style.css" />
   </head>
   <body>
+   <div id="shell" data-tab="budget">
+    <div id="root"></div>
     <div id="app" data-mode="simple">
       <header id="topbar">
-        <div class="brand">Planbench</div>
         <div id="filename" class="filename"></div>
         <div class="modes" role="group" aria-label="Choose how the screen looks">
           <button id="mode-simple" type="button">Simple</button>
@@ -96,6 +97,7 @@
         </form>
       </dialog>
     </div>
-    <script type="module" src="/src/main.ts"></script>
+   </div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

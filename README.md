@@ -1,8 +1,8 @@
 # Planbench
 
-A friendly CAD programme that runs in the web browser, on a laptop or a tablet.
-It is for opening drawings, measuring them, and (in later stages) designing home
-renovation layouts and concept sketches.
+A renovation planner that runs in the web browser, on a phone, tablet or laptop.
+It was started for a kitchen renovation: work out what everything costs, compare
+choices, keep photos together, and measure from plans.
 
 ## Using it
 
@@ -11,6 +11,23 @@ or tablet. Nothing needs installing. The site updates itself a few minutes after
 every change to this repository.
 
 ## What it does today
+
+**Costs**
+- A kitchen list to start from (cabinetry, handles, benchtops, tiles, appliances,
+  plumber, electrician...). Add, rename or delete anything.
+- Each item has a quantity and any number of **options** you are choosing between,
+  each with a price, fitting cost, one-off extras, shop, web link, notes and a photo.
+- Pick one option per item and the **total updates straight away**, with an
+  allowance for surprises and the GST shown. Each option says how much more or
+  less it costs than your current choice.
+- Save your choices as a **version** ("Budget", "Dream") and compare versions side by side.
+- Download the budget as a spreadsheet.
+
+**Photos**
+- Keep photos of the kitchen as it is now, and of ideas you like.
+- Open any photo in Plans to set its scale and measure on it.
+
+**Plans**
 
 - Opens **DXF** drawings, **PDF** plans (including several pages) and **pictures**
   of plans such as scans or photos (drag a file in, or press *Open a file*).
@@ -32,13 +49,12 @@ Everything is measured in millimetres and shown in mm, m and m².
 
 ## What is planned
 
-| Stage | What it adds |
-|---|---|
-| 1 (in progress) | 3D files (STL, OBJ, STEP), DWG, notes on drawings, login and saving across devices |
-| 2 | Tracing over a plan; smart walls, doors and windows; dimensions; 3D preview |
-| 3 | Furniture and fixture library, room areas and material quantities, before/after options |
-| 4 | Print-to-scale PDF, DXF export, quantities spreadsheet |
-| 5 | Concept sketching for small objects |
+1. Logging in, so two people can share one project across their devices.
+2. Using measurements from a plan as quantities (tile area, bench length).
+3. Seeing the future look: trying finishes on a photo or simple 3D view.
+4. More plan tools: walls, cabinets, 3D files, DWG, printing to scale.
+
+At the moment everything is saved **in the browser on one device only**.
 
 ## Running it on your own computer
 
@@ -57,7 +73,8 @@ npm run sample   # re-create the sample plan
 - `src/io` - file readers; each converts a file into the internal format
 - `src/view` - the pan/zoom view and the canvas drawing code
 - `src/tools` - snapping and measuring
-- `src/ui` - the screen: Simple and Pro modes, pointer/touch handling
+- `src/ui` - the Plans screen: Simple and Pro modes, pointer/touch handling
+- `src/budget` - the Costs and Photos screens, the budget sums, and saving
 - `tests` - automatic tests
 
 ## Licence

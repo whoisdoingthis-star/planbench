@@ -257,6 +257,16 @@ export class App {
     }
   }
 
+  /** Opens a picture that is already in the app (for example a kitchen photo) so it can be measured. */
+  async openPicture(blob: Blob, name: string): Promise<void> {
+    try {
+      this.pdf = null;
+      this.load(await openImage(blob, name));
+    } catch (err) {
+      this.toast(err instanceof Error ? err.message : 'This picture could not be opened.');
+    }
+  }
+
   private async showPdfPage(n: number): Promise<void> {
     const pdf = this.pdf;
     if (!pdf || n < 1 || n > pdf.file.pageCount) return;
@@ -658,7 +668,8 @@ export class App {
   private resize(): void {
     const r = this.canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    const first = this.view.w === 100 && this.view.h === 100;
+    // The first time the drawing area has a real size (it has none while another tab is showing), fit the drawing to it.
+    const first = this.view.w <= 1 || (this.view.w === 100 && this.view.h === 100);
     this.view.w = Math.max(1, r.width);
     this.view.h = Math.max(1, r.height);
     this.canvas.width = Math.round(this.view.w * dpr);

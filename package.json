@@ -17,7 +17,8 @@
   },
   "dependencies": {
     "dxf-parser": "^1.1.2",
-    "pdfjs-dist": "^6.5.438"
+    "pdfjs-dist": "^6.5.438",
+    "preact": "^11.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

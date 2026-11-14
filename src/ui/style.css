@@ -22,15 +22,18 @@ button:hover { border-color: var(--brand); }
 button:focus-visible, input:focus-visible { outline: 3px solid #7fb2e5; outline-offset: 1px; }
 button.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
 
+#shell { height: 100dvh; display: flex; flex-direction: column; }
+#root { display: contents; }
+#shell:not([data-tab="plans"]) #app { display: none; }
 #app {
-  height: 100dvh; display: grid; color: var(--ink); background: var(--bg);
+  flex: 1; min-height: 0; display: grid; color: var(--ink); background: var(--bg);
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-rows: auto 1fr auto;
   grid-template-areas: "top top top" "tools stage layers" "status status status";
 }
 #topbar {
   grid-area: top; display: flex; align-items: center; gap: 16px;
-  padding: 8px 14px; background: var(--brand); color: #fff;
+  padding: 6px 14px; background: #2c6399; color: #fff;
 }
 .brand { font-weight: 700; font-size: 20px; letter-spacing: 0.3px; }
 .filename { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.9; }

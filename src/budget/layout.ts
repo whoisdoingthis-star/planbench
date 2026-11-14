@@ -64,7 +64,7 @@ export interface Layout {
   splashRepeat: number;
   /** A photo of one whole floor tile. */
   floorPhoto?: string;
-  /** A close-up photo of the benchtop surface, and roughly how wide a patch it shows in real life. */
+  /** A close-up photo of the benchtop surface, and the real width in millimetres of the patch it shows. */
   benchPhoto?: string;
   benchRepeat: number;
 }

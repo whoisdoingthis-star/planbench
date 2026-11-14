@@ -221,7 +221,8 @@ export async function mountKitchen(
       const face = (across: number, up: number) => {
         const t = track(benchTex.clone());
         t.needsUpdate = true;
-        t.repeat.set(across / l.benchRepeat, up / l.benchRepeat);
+        // benchRepeat is the real width the photo shows; its height follows from the photo's shape.
+        t.repeat.set(across / l.benchRepeat, up / ((l.benchRepeat * benchImg!.height) / benchImg!.width));
         return track(new THREE.MeshStandardMaterial({ map: t, roughness: 0.35 }));
       };
       const top = face(r1 - r0, BASE_D + 25);

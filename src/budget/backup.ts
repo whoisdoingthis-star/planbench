@@ -66,6 +66,8 @@ export function normaliseProject(raw: unknown): Project {
 function photoIds(p: Project): string[] {
   const ids = p.photos.map((x) => x.id);
   for (const s of p.sections) for (const i of s.items) for (const o of i.options) if (o.photoId) ids.push(o.photoId);
+  if (p.layout?.splashPhoto) ids.push(p.layout.splashPhoto);
+  if (p.layout?.floorPhoto) ids.push(p.layout.floorPhoto);
   return [...new Set(ids)];
 }
 

@@ -256,6 +256,8 @@ export class Cloud {
   private allPhotoIds(): string[] {
     const ids = this.project.photos.map((p) => p.id);
     for (const s of this.project.sections) for (const i of s.items) for (const o of i.options) if (o.photoId) ids.push(o.photoId);
+    if (this.project.layout?.splashPhoto) ids.push(this.project.layout.splashPhoto);
+    if (this.project.layout?.floorPhoto) ids.push(this.project.layout.floorPhoto);
     return ids;
   }
 

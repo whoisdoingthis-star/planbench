@@ -6,6 +6,7 @@ import {
   KIND_NAMES, benchTop, defaultLayout, optionFacts, seg, wallWidth,
 } from './layout';
 import { NumberBox } from './ui';
+import { Kitchen3D } from './Kitchen3D';
 
 interface Props {
   project: Project;
@@ -14,6 +15,7 @@ interface Props {
 
 export function LayoutView({ project: p, changed }: Props) {
   const [wallId, setWallId] = useState<string | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
   const l = p.layout;
   if (!l) {
     return (
@@ -28,15 +30,28 @@ export function LayoutView({ project: p, changed }: Props) {
   }
   const wall = l.walls.find((w) => w.id === wallId) ?? l.walls[0];
 
+  const shown = l.options.find((o) => o.id === viewId) ?? l.options.find((o) => o.id === l.chosen) ?? l.options[0];
+
   return (
     <div class="budget layout">
+      {shown && (
+        <section class="card">
+          <div class="row-actions" style="margin-top:0">
+            <h2 style="margin:0">The kitchen in 3D</h2>
+            {l.options.length > 1 && l.options.map((o) => (
+              <button key={o.id} type="button" class={`btn small ${o === shown ? 'primary' : ''}`} onClick={() => setViewId(o.id)}>{o.name}</button>
+            ))}
+          </div>
+          <Kitchen3D project={p} layout={l} option={shown} />
+        </section>
+      )}
       <section class="card">
         <div class="row-actions" style="margin-top:0">
           <h2 style="margin:0">Wall</h2>
           {l.walls.map((w) => (
             <button key={w.id} type="button" class={`btn small ${w === wall ? 'primary' : ''}`} onClick={() => setWallId(w.id)}>{w.name || 'Wall'}</button>
           ))}
-          <button type="button" class="btn small" onClick={() => { const w: Wall = { id: newId(), name: 'New wall', base: [seg('cabinet', 600)], upper: [seg('cabinet', 600)], hobW: 0 }; l.walls.push(w); setWallId(w.id); changed(); }}>Add a wall</button>
+          <button type="button" class="btn small" onClick={() => { const w: Wall = { id: newId(), name: 'New wall', base: [seg('cabinet', 600)], upper: [seg('cabinet', 600)], hobW: 0, x: 0, y: 0, dir: 0 }; l.walls.push(w); setWallId(w.id); changed(); }}>Add a wall</button>
         </div>
         <div class="fields">
           <Num label="Ceiling height" value={l.ceiling} set={(v) => { l.ceiling = v; }} changed={changed} />
@@ -44,8 +59,10 @@ export function LayoutView({ project: p, changed }: Props) {
           <Num label="Base cabinet height" value={l.baseH} set={(v) => { l.baseH = v; }} changed={changed} />
           <Num label="Benchtop thickness" value={l.benchT} set={(v) => { l.benchT = v; }} changed={changed} />
           <Num label="Pantry height" value={l.tallH} set={(v) => { l.tallH = v; }} changed={changed} />
-          <Num label="Tile width" value={l.tileW} set={(v) => { l.tileW = v; }} changed={changed} />
-          <Num label="Tile height" value={l.tileH} set={(v) => { l.tileH = v; }} changed={changed} />
+          <Num label="Splashback tile width" value={l.tileW} set={(v) => { l.tileW = v; }} changed={changed} />
+          <Num label="Splashback tile height" value={l.tileH} set={(v) => { l.tileH = v; }} changed={changed} />
+          <Num label="Floor tile length" value={l.floorTileW} set={(v) => { l.floorTileW = v; }} changed={changed} />
+          <Num label="Floor tile width" value={l.floorTileH} set={(v) => { l.floorTileH = v; }} changed={changed} />
         </div>
         <p class="muted">All sizes are in millimetres. Bench top is {benchTop(l)} mm from the floor.</p>
         {wall && <WallEditor l={l} wall={wall} changed={changed} removed={() => setWallId(null)} />}
@@ -101,7 +118,7 @@ function WallEditor({ l, wall, changed, removed }: { l: Layout; wall: Wall; chan
         </label>
       </div>
       <p class="muted">List the units from left to right as you face the wall.</p>
-      {rows('On the floor', wall.base, ['cabinet', 'drawers', 'oven', 'dishwasher', 'fridge', 'tall', 'filler', 'gap'])}
+      {rows('On the floor', wall.base, ['cabinet', 'drawers', 'sink', 'oven', 'dishwasher', 'fridge', 'tall', 'filler', 'gap'])}
       {rows('On the wall', wall.upper, ['cabinet', 'hood', 'open', 'filler', 'gap'])}
       {l.walls.length > 1 && (
         <div class="row-actions">
@@ -189,7 +206,7 @@ function Elevation({ l, wall, o }: { l: Layout; wall: Wall; o: HeightOption }) {
       } else {
         rect(x, lo, hi, s.w, s.kind === 'filler' ? '#f1f1ee' : '#ffffff');
         if (s.kind === 'drawers') { seam(x, lo + l.baseH * 0.42, x + s.w, lo + l.baseH * 0.42); seam(x, lo + l.baseH * 0.76, x + s.w, lo + l.baseH * 0.76); }
-        else if (s.kind === 'cabinet' && s.w > 500) seam(x + s.w / 2, lo, x + s.w / 2, hi);
+        else if ((s.kind === 'cabinet' || s.kind === 'sink') && s.w > 500) seam(x + s.w / 2, lo, x + s.w / 2, hi);
       }
     }
     width(x, s.w, -90);

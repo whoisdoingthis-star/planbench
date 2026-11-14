@@ -2,10 +2,10 @@
 // and a few height options to compare, such as how tall the splashback is.
 import { newId } from './model';
 
-export type SegKind = 'cabinet' | 'drawers' | 'oven' | 'dishwasher' | 'fridge' | 'tall' | 'hood' | 'open' | 'filler' | 'gap';
+export type SegKind = 'cabinet' | 'drawers' | 'sink' | 'oven' | 'dishwasher' | 'fridge' | 'tall' | 'hood' | 'open' | 'filler' | 'gap';
 
 export const KIND_NAMES: Record<SegKind, string> = {
-  cabinet: 'Cupboard', drawers: 'Drawers', oven: 'Oven', dishwasher: 'Dishwasher', fridge: 'Fridge',
+  cabinet: 'Cupboard', drawers: 'Drawers', sink: 'Sink cupboard', oven: 'Oven', dishwasher: 'Dishwasher', fridge: 'Fridge',
   tall: 'Tall unit / pantry', hood: 'Rangehood cabinet', open: 'Open shelf', filler: 'Filler panel', gap: 'Empty space',
 };
 
@@ -26,6 +26,13 @@ export interface Wall {
   upper: Segment[];
   /** Width of the cooktop, drawn centred over the oven. 0 for none. */
   hobW: number;
+  /** Where this wall sits in the room, seen from above: the left-hand end of the run as you face it. */
+  x: number;
+  y: number;
+  /** Which way the run heads from there, seen from above: 0 = right, 90 = down, 180 = left, 270 = up. */
+  dir: number;
+  /** A window in this wall: distance from the left end, width, height of the sill from the floor, and height. */
+  window?: { from: number; w: number; sill: number; h: number };
 }
 
 export interface HeightOption {
@@ -49,6 +56,14 @@ export interface Layout {
   walls: Wall[];
   options: HeightOption[];
   chosen: string | null;
+  /** Floor tile size, and photos to use as the tile surfaces in the 3D view. */
+  floorTileW: number;
+  floorTileH: number;
+  /** A photo of one repeat of the splashback pattern, and how big that repeat is in real life. */
+  splashPhoto?: string;
+  splashRepeat: number;
+  /** A photo of one whole floor tile. */
+  floorPhoto?: string;
 }
 
 export const seg = (kind: SegKind, w: number, label = ''): Segment => ({ id: newId(), kind, w, label });
@@ -57,12 +72,13 @@ export function defaultLayout(): Layout {
   return {
     ceiling: 2400, toeKick: 150, baseH: 720, benchT: 30, tallH: 2086, tileW: 600, tileH: 300,
     walls: [{
-      id: newId(), name: 'Cooktop wall', hobW: 600,
+      id: newId(), name: 'Cooktop wall', hobW: 600, x: 0, y: 0, dir: 0,
       base: [seg('cabinet', 600), seg('drawers', 600), seg('oven', 600), seg('cabinet', 600), seg('cabinet', 600)],
       upper: [seg('cabinet', 600), seg('cabinet', 600), seg('hood', 600), seg('cabinet', 600), seg('cabinet', 600)],
     }],
     options: [{ id: newId(), name: 'Standard', splash: 600, upperH: 720 }],
     chosen: null,
+    floorTileW: 600, floorTileH: 600, splashRepeat: 0,
   };
 }
 
@@ -131,8 +147,20 @@ export function normaliseLayout(raw: unknown): Layout | undefined {
   return {
     ceiling: n(r.ceiling, d.ceiling), toeKick: n(r.toeKick, d.toeKick), baseH: n(r.baseH, d.baseH), benchT: n(r.benchT, d.benchT),
     tallH: n(r.tallH, d.tallH), tileW: n(r.tileW, d.tileW), tileH: n(r.tileH, d.tileH),
-    walls: arr(r.walls).map((w) => ({ id: s(w.id) || newId(), name: s(w.name, 'Wall'), base: segs(w.base), upper: segs(w.upper), hobW: n(w.hobW, 0) })),
+    walls: arr(r.walls).map((w) => {
+      const win = w.window as Record<string, unknown> | undefined;
+      return {
+        id: s(w.id) || newId(), name: s(w.name, 'Wall'), base: segs(w.base), upper: segs(w.upper), hobW: n(w.hobW, 0),
+        x: typeof w.x === 'number' && Number.isFinite(w.x) ? w.x : 0,
+        y: typeof w.y === 'number' && Number.isFinite(w.y) ? w.y : 0,
+        dir: [0, 90, 180, 270].includes(w.dir as number) ? (w.dir as number) : 0,
+        ...(win && typeof win === 'object' ? { window: { from: n(win.from, 0), w: n(win.w, 1000), sill: n(win.sill, 1000), h: n(win.h, 1000) } } : {}),
+      };
+    }),
     options,
     chosen: options.some((o) => o.id === r.chosen) ? s(r.chosen) : null,
+    floorTileW: n(r.floorTileW, 600), floorTileH: n(r.floorTileH, 600), splashRepeat: n(r.splashRepeat, 0),
+    ...(s(r.splashPhoto) ? { splashPhoto: s(r.splashPhoto) } : {}),
+    ...(s(r.floorPhoto) ? { floorPhoto: s(r.floorPhoto) } : {}),
   };
 }

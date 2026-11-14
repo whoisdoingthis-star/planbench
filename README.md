@@ -32,6 +32,9 @@ every change to this repository.
   `npm run seal -- "path/to/file.planbench.json"` creates the locked copy and prints the link ending.
 
 **Layout**
+- A **3D view** of the whole kitchen that you can turn and zoom, built from the
+  wall lists. It uses the chosen door colour, handles and benchtop from the Costs
+  screen, and photos of your tiles on the splashback and floor.
 - Draw a wall to scale: list the units along the floor and on the wall.
 - Compare height options side by side, such as splashback height and wall
   cabinet height. Each option shows whether tiles need cutting, how much space

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Layout: a 3D view of the kitchen (all walls, window, appliances, tiles from photos), following the current choices.
+- Layout: walls can be placed in the room, have a window, and include a sink cupboard.
 - Private links: open a project stored on the site in encrypted form, using a key carried in the link.
 - Layout: the tile check now allows a few millimetres for grout lines, so a gap of 602 mm counts as four 150 mm rows.
 - New **Layout** screen: a wall drawn to scale, with height options compared side by side (tile cuts, gap to ceiling, alignment with the pantry).

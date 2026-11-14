@@ -146,3 +146,4 @@
 .seg-row select { min-width: 170px; }
 @media (max-width: 640px) { #nav .tabs button { padding: 8px 9px; font-size: 15px; } }
 .option-card .section-name { width: 100%; font-size: 18px; }
+.view3d { width: 100%; height: min(68vh, 640px); min-height: 320px; border-radius: 12px; overflow: hidden; background: #dfe6ec; margin-top: 12px; cursor: grab; }

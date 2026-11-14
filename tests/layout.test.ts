@@ -24,6 +24,14 @@ describe('wall height options', () => {
     l.tileH = 300;
     expect(optionFacts(l, opt(750, 720))).toMatchObject({ fullRows: 2, cutRow: 150 });
     expect(optionFacts(l, opt(600, 720))).toMatchObject({ fullRows: 2, cutRow: 0 });
+    // 150 mm tiles: five rows make 750, and four rows fit the 602 mm gap as drawn with 2 mm to spare.
+    l.tileH = 150;
+    expect(optionFacts(l, opt(750, 720))).toMatchObject({ fullRows: 5, cutRow: 0 });
+    expect(optionFacts(l, opt(602, 584))).toMatchObject({ fullRows: 4, cutRow: 0 });
+    expect(optionFacts(l, opt(602, 584)).notes[0].text).toMatch(/2 mm to spare/);
+    expect(optionFacts(l, opt(466, 720))).toMatchObject({ fullRows: 3, cutRow: 16 });
+    expect(optionFacts(l, opt(598, 584)).notes[0].text).toMatch(/2 mm tight/);
+    expect(optionFacts(l, opt(590, 584))).toMatchObject({ fullRows: 3, cutRow: 140 });
   });
 
   it('warns in plain words', () => {

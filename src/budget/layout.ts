@@ -89,15 +89,20 @@ export function optionFacts(l: Layout, o: HeightOption): OptionFacts {
   const top = underside + o.upperH;
   const toCeiling = l.ceiling - top;
   const vsTall = top - l.tallH;
-  const fullRows = l.tileH > 0 ? Math.floor((o.splash + 0.5) / l.tileH) : 0;
+  // Tile sizes are nominal: a few millimetres either way disappear into the grout lines and the sealant along the bench.
+  const SLACK = 6;
+  const fullRows = l.tileH > 0 ? Math.floor((o.splash + SLACK) / l.tileH) : 0;
   const rest = l.tileH > 0 ? o.splash - fullRows * l.tileH : 0;
-  const cutRow = rest < 1 ? 0 : Math.round(rest);
+  const cutRow = rest <= SLACK ? 0 : Math.round(rest);
   const notes: OptionFacts['notes'] = [];
 
   if (l.tileH > 0) {
-    if (cutRow === 0) notes.push({ tone: 'good', text: `Tiles: ${fullRows} full ${fullRows === 1 ? 'row' : 'rows'} of ${l.tileH} mm fit exactly. No cutting along the top.` });
+    const rows = `${fullRows} full ${fullRows === 1 ? 'row' : 'rows'} of ${l.tileH} mm`;
+    if (cutRow === 0 && Math.abs(rest) < 0.5) notes.push({ tone: 'good', text: `Tiles: ${rows} fit exactly. No cutting along the top.` });
+    else if (cutRow === 0 && rest > 0) notes.push({ tone: 'good', text: `Tiles: ${rows} fit with ${Math.round(rest)} mm to spare, which the grout lines take up. No cutting along the top.` });
+    else if (cutRow === 0) notes.push({ tone: 'info', text: `Tiles: ${rows} only just fit; it is ${Math.round(-rest)} mm tight. Check the exact tile and grout size with the tiler.` });
     else if (fullRows === 0) notes.push({ tone: 'warn', text: `Tiles: every ${l.tileH} mm tile has to be cut down to ${cutRow} mm high.` });
-    else notes.push({ tone: 'warn', text: `Tiles: ${fullRows} full ${fullRows === 1 ? 'row' : 'rows'} of ${l.tileH} mm, then a cut row ${cutRow} mm high along the top.` });
+    else notes.push({ tone: 'warn', text: `Tiles: ${rows}, then a cut row ${cutRow} mm high along the top.` });
   }
   if (toCeiling < 0) notes.push({ tone: 'warn', text: `Does not fit: the cabinets would need ${Math.round(-toCeiling)} mm more height than the ceiling allows.` });
   else if (toCeiling < 5) notes.push({ tone: 'info', text: 'Cabinets reach the ceiling. Any cornice has to come off or be cut around.' });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { normaliseProject } from '../src/budget/backup';
 import { type Project, applyVersion, itemCost, kitchenTemplate, newItem, newOption, optionCost, saveVersion, toCsv, totals } from '../src/budget/model';
 
 function small(): Project {
@@ -75,5 +76,18 @@ describe('budget sums', () => {
     const csv = toCsv(small());
     expect(csv).toContain('Handles,Cupboard handles,24,each,Brass,,18.5,0,12,456.00');
     expect(csv).toContain('Total,1312.85');
+  });
+
+  it('tidies a project read from a file', () => {
+    const p = normaliseProject({
+      name: 'K', currency: 'nonsense', sections: [{ name: 'S', items: [{ name: 'I', qty: -3, chosen: 'missing', options: [{ id: 'o', price: '12', labour: 5 }, 'junk'] }] }],
+      versions: 'junk', photos: [{ group: 'weird' }, { id: 'p1', group: 'ideas' }],
+    });
+    expect(p.currency).toBe('NZD');
+    const item = p.sections[0].items[0];
+    expect([item.qty, item.chosen, item.included, item.options.length, item.options[0].price, item.options[0].labour]).toEqual([1, null, true, 1, 0, 5]);
+    expect(p.versions).toEqual([]);
+    expect(p.photos).toEqual([{ id: 'p1', group: 'ideas', caption: '', addedAt: '' }]);
+    expect(() => normaliseProject({ nope: true })).toThrow(/Planbench project/);
   });
 });

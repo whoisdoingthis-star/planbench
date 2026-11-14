@@ -238,3 +238,12 @@ export function toCsv(p: Project): string {
   rows.push(['', '', '', '', '', '', '', '', 'Total', t.total.toFixed(2)]);
   return rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
+
+/** Swaps everything inside the app's project for another project, keeping the same object. */
+export function replaceProject(target: Project, next: Project): void {
+  const t = target as unknown as Record<string, unknown>;
+  for (const k of Object.keys(t)) delete t[k];
+  Object.assign(t, JSON.parse(JSON.stringify(next)));
+  target.versions ??= [];
+  target.photos ??= [];
+}

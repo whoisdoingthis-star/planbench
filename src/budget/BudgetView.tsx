@@ -1,8 +1,9 @@
 import { useState } from 'preact/hooks';
 import {
   type Item, type Option, type Project, type Section, type Version,
-  UNITS, applyVersion, chosenOption, itemCost, money, newId, newItem, newOption, optionCost, saveVersion, toCsv, totals,
+  UNITS, applyVersion, chosenOption, itemCost, money, newId, newItem, newOption, optionCost, replaceProject, saveVersion, toCsv, totals,
 } from './model';
+import { exportBackup, importBackup } from './backup';
 import { deletePhoto, storePhoto } from './store';
 import { NumberBox, PhotoButton, PhotoImg } from './ui';
 
@@ -25,6 +26,26 @@ export function BudgetView({ project: p, changed }: Props) {
     a.download = `${p.name || 'budget'}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  const save = (blob: Blob, name: string) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  const backup = async () => save(await exportBackup(p), `${p.name || 'project'}.planbench.json`);
+  const restore = async (file: File) => {
+    try {
+      const next = await importBackup(await file.text());
+      if (!confirm(`Replace everything here with “${next.name}” from the file? If you are sharing this project, it is replaced for everyone.`)) return;
+      replaceProject(p, next);
+      setOpen(null);
+      changed();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'That file could not be opened.');
+    }
   };
 
   return (
@@ -81,6 +102,12 @@ export function BudgetView({ project: p, changed }: Props) {
       <div class="row-actions">
         <button type="button" class="btn" onClick={() => { p.sections.push({ id: newId(), name: 'New section', items: [] }); changed(); }}>Add a section</button>
         <button type="button" class="btn" onClick={download}>Download as a spreadsheet</button>
+        <span class="spacer" />
+        <button type="button" class="btn" onClick={() => void backup()}>Save a project file</button>
+        <label class="btn">
+          Open a project file
+          <input type="file" accept=".json,application/json" hidden data-testid="open-project" onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ''; if (f) void restore(f); }} />
+        </label>
       </div>
     </div>
   );

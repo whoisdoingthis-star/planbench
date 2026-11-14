@@ -2,7 +2,7 @@
 import { type RealtimeChannel, type SupabaseClient, createClient } from '@supabase/supabase-js';
 import { SUPABASE_KEY, SUPABASE_URL } from './config';
 import { merge3, same } from './merge';
-import type { Project } from './model';
+import { type Project, replaceProject } from './model';
 
 export type SyncState = 'signed-out' | 'starting' | 'saved' | 'saving' | 'offline' | 'problem';
 
@@ -141,13 +141,8 @@ export class Cloud {
     writeJson(SYNC_KEY, { projectId: id, rev, base: this.base } satisfies Stored);
   }
 
-  /** Swaps the content of the app's project object without replacing the object itself. */
   private replace(next: Project): void {
-    const target = this.project as unknown as Record<string, unknown>;
-    for (const k of Object.keys(target)) delete target[k];
-    Object.assign(target, clone(next));
-    target.versions ??= [];
-    target.photos ??= [];
+    replaceProject(this.project, next);
   }
 
   private listen(): void {

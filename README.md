@@ -22,6 +22,8 @@ every change to this repository.
   less it costs than your current choice.
 - Save your choices as a **version** ("Budget", "Dream") and compare versions side by side.
 - Download the budget as a spreadsheet.
+- **Save a project file** (the whole project with its photos in one file) as a
+  backup, and **open a project file** to load one.
 
 **Sharing**
 - Without signing in, everything is saved in the browser on that one device.

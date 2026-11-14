@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Options can record a real size. The layout draws whichever fridge is chosen on the Costs screen (size, colour, door style) and checks it against the space left for it.
 - Layout: doorways have frames, and a door can be drawn shut.
 - Fixed: splashback tiles in the 3D view ran across the window; they now stop at the sill and continue either side.
 - Layout: a *Realistic lighting* switch for the 3D view (ceiling, daylight, downlights, soft shadows, shading in corners) and a *Save a picture* button.

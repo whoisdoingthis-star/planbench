@@ -15,6 +15,13 @@ const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : d);
 const num = (v: unknown, d = 0): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : d);
 const list = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'object' && x !== null) : []);
 
+function sizeOf(v: unknown): { w: number; d: number; h: number } | undefined {
+  const r = v as Record<string, unknown> | null;
+  if (!r || typeof r !== 'object') return undefined;
+  const w = num(r.w), d = num(r.d), h = num(r.h);
+  return w > 0 && d > 0 && h > 0 ? { w, d, h } : undefined;
+}
+
 /** Tidies a project read from a file, so a damaged or hand-edited file cannot break the app. */
 export function normaliseProject(raw: unknown): Project {
   if (typeof raw !== 'object' || raw === null || !Array.isArray((raw as Project).sections)) {
@@ -36,6 +43,7 @@ export function normaliseProject(raw: unknown): Project {
         notes: str(o.notes),
         ...(str(o.photoId) ? { photoId: str(o.photoId) } : {}),
         ...(/^#[0-9a-fA-F]{6}$/.test(str(o.swatch)) ? { swatch: str(o.swatch) } : {}),
+        ...(sizeOf(o.size) ? { size: sizeOf(o.size) } : {}),
       }));
       const chosen = options.some((o) => o.id === i.chosen) ? str(i.chosen) : null;
       return { id: str(i.id) || newId(), name: str(i.name), qty: num(i.qty, 1), unit: str(i.unit, 'each'), options, chosen, included: i.included !== false, notes: str(i.notes) };

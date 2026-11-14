@@ -123,3 +123,19 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
     </div>
   );
 }
+
+/**
+ * The layout as it should be drawn right now: the fridge takes its size, colour and door style
+ * from whichever fridge is chosen on the Costs screen, so swapping it there shows up here.
+ */
+export function withChosenAppliances(p: Project, l: Layout): Layout {
+  let fridge = null;
+  for (const s of p.sections) for (const i of s.items) if (/fridge/i.test(i.name) && !/above|over|box|shelf/i.test(i.name) && i.included) fridge = fridge ?? chosenOption(i);
+  if (!fridge) return l;
+  return {
+    ...l,
+    ...(fridge.size ? { fridgeW: fridge.size.w, fridgeD: fridge.size.d, fridgeH: fridge.size.h } : {}),
+    ...(fridge.swatch ? { fridgeColor: fridge.swatch } : {}),
+    fridgeDoors: /quad|4[- ]door|four[- ]door/i.test(fridge.name) ? 'quad' : l.fridgeDoors,
+  };
+}

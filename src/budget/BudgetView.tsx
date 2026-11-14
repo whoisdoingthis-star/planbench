@@ -298,6 +298,14 @@ function ItemEditor({ p, s, item, changed, close }: { p: Project; s: Section; it
                   <label class="grow">Notes
                     <input value={o.notes} onInput={(e) => { o.notes = e.currentTarget.value; changed(); }} />
                   </label>
+                  <label>Size, if it matters for the layout (width × depth × height, mm)
+                    <span class="size-row">
+                      {(['w', 'd', 'h'] as const).map((k) => (
+                        <NumberBox key={k} class="tiny3" label={k === 'w' ? 'Width in millimetres' : k === 'd' ? 'Depth in millimetres' : 'Height in millimetres'} value={o.size?.[k] ?? 0}
+                          onValue={(n) => { const next = { w: o.size?.w ?? 0, d: o.size?.d ?? 0, h: o.size?.h ?? 0, [k]: n }; if (next.w || next.d || next.h) o.size = next; else delete o.size; changed(); }} />
+                      ))}
+                    </span>
+                  </label>
                   <label>Colour in the 3D view
                     <span class="swatch-row">
                       <input type="color" aria-label="Colour in the 3D view" value={o.swatch ?? '#f6f6f3'} onInput={(e) => { o.swatch = e.currentTarget.value; changed(); }} />

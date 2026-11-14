@@ -21,6 +21,9 @@ every change to this repository.
   allowance for surprises and the GST shown. Each option says how much more or
   less it costs than your current choice.
 - Save your choices as a **version** ("Budget", "Dream") and compare versions side by side.
+- An option can carry its **real size and colour**. The Layout screen draws the
+  chosen fridge at that size and says whether it fits its space, so swapping an
+  appliance shows its effect on both cost and fit.
 - Download the budget as a spreadsheet.
 - **Save a project file** (the whole project with its photos in one file) as a
   backup, and **open a project file** to load one.

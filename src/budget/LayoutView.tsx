@@ -3,10 +3,10 @@ import type { Project } from './model';
 import { newId } from './model';
 import {
   type HeightOption, type Layout, type SegKind, type Segment, type Wall,
-  KIND_NAMES, benchTop, defaultLayout, optionFacts, seg, wallWidth,
+  KIND_NAMES, benchTop, defaultLayout, fridgeFit, optionFacts, seg, wallWidth,
 } from './layout';
 import { NumberBox } from './ui';
-import { Kitchen3D } from './Kitchen3D';
+import { Kitchen3D, withChosenAppliances } from './Kitchen3D';
 import { PlanView } from './PlanView';
 
 interface Props {
@@ -31,6 +31,9 @@ export function LayoutView({ project: p, changed }: Props) {
   }
   const wall = l.walls.find((w) => w.id === wallId) ?? l.walls[0];
 
+  // What is drawn follows the appliances chosen on the Costs screen; edits still go to the saved layout.
+  const eff = withChosenAppliances(p, l);
+  const fit = fridgeFit(eff);
   const shown = l.options.find((o) => o.id === viewId) ?? l.options.find((o) => o.id === l.chosen) ?? l.options[0];
 
   return (
@@ -43,7 +46,14 @@ export function LayoutView({ project: p, changed }: Props) {
               <button key={o.id} type="button" class={`btn small ${o === shown ? 'primary' : ''}`} onClick={() => setViewId(o.id)}>{o.name}</button>
             ))}
           </div>
-          <Kitchen3D project={p} layout={l} option={shown} />
+          <Kitchen3D project={p} layout={eff} option={shown} />
+          {fit.length > 0 && (
+            <div data-testid="fridge-fit">
+              <h3>Does the chosen fridge fit?</h3>
+              <ul class="facts">{fit.map((n, i) => <li key={i} class={n.tone}>{n.text}</li>)}</ul>
+              <p class="muted">Pick a different fridge on the Costs screen and this, the 3D view and the total all update.</p>
+            </div>
+          )}
           <div class="fields">
             <label>Wall tile shade
               <span class="swatch-row">
@@ -60,7 +70,7 @@ export function LayoutView({ project: p, changed }: Props) {
       {l.zones.length > 0 && (
         <section class="card">
           <h2>The room from above</h2>
-          <PlanView layout={l} changed={changed} />
+          <PlanView layout={eff} changed={changed} />
         </section>
       )}
       <section class="card">
@@ -88,7 +98,7 @@ export function LayoutView({ project: p, changed }: Props) {
 
       {wall && (
         <div class="option-grid">
-          {l.options.map((o) => <OptionCard key={o.id} l={l} wall={wall} o={o} changed={changed} />)}
+          {l.options.map((o) => <OptionCard key={o.id} l={l} eff={eff} wall={wall} o={o} changed={changed} />)}
         </div>
       )}
       <div class="row-actions">
@@ -147,7 +157,7 @@ function WallEditor({ l, wall, changed, removed }: { l: Layout; wall: Wall; chan
   );
 }
 
-function OptionCard({ l, wall, o, changed }: { l: Layout; wall: Wall; o: HeightOption; changed: () => void }) {
+function OptionCard({ l, eff, wall, o, changed }: { l: Layout; eff: Layout; wall: Wall; o: HeightOption; changed: () => void }) {
   const f = optionFacts(l, o);
   const picked = l.chosen === o.id;
   return (
@@ -157,7 +167,7 @@ function OptionCard({ l, wall, o, changed }: { l: Layout; wall: Wall; o: HeightO
         <Num label="Splashback height" value={o.splash} set={(v) => { o.splash = v; }} changed={changed} />
         <Num label="Wall cabinet height" value={o.upperH} set={(v) => { o.upperH = v; }} changed={changed} />
       </div>
-      <Elevation l={l} wall={wall} o={o} />
+      <Elevation l={eff} wall={wall} o={o} />
       <ul class="facts">
         {f.notes.map((n, i) => <li key={i} class={n.tone}>{n.text}</li>)}
       </ul>

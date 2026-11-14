@@ -103,6 +103,7 @@ export async function mountKitchen(
     frame: mat('#fbfbf9', 0.6),
     glass: track(new THREE.MeshStandardMaterial({ color: '#bfe0f2', emissive: '#9fd0ee', emissiveIntensity: 0.55, roughness: 0.1 })),
     filler: mat(finish.door, 0.6),
+    fridge: mat(l.fridgeColor || '#aeb4ba', 0.35, 0.65),
     dish: mat(l.dishColor, 0.45, l.dishColor.toLowerCase() === '#aeb4ba' ? 0.7 : 0.1),
     ring: mat('#5d6268', 0.4),
     shelf: mat('#e9e3d6', 0.7),
@@ -206,9 +207,18 @@ export async function mountKitchen(
         const f0 = a + (s.w - fw) / 2;
         const fd = l.fridgeD || 690;
         const fh = l.fridgeH || 1790;
-        box(f0, f0 + fw, 0, fd, 0, fh * 0.36, M.steel, true);
-        box(f0, f0 + fw / 2 - 2, 0, fd, fh * 0.36 + 6, fh, M.steel, true);
-        box(f0 + fw / 2 + 2, f0 + fw, 0, fd, fh * 0.36 + 6, fh, M.steel, true);
+        if (l.fridgeDoors === 'quad') {
+          // Four doors: two above, two below.
+          for (const [h0, h1] of [[0, fh * 0.4], [fh * 0.4 + 6, fh]]) {
+            box(f0, f0 + fw / 2 - 2, 0, fd, h0, h1, M.fridge, true);
+            box(f0 + fw / 2 + 2, f0 + fw, 0, fd, h0, h1, M.fridge, true);
+          }
+        } else {
+          // Two doors above a freezer drawer.
+          box(f0, f0 + fw, 0, fd, 0, fh * 0.36, M.fridge, true);
+          box(f0, f0 + fw / 2 - 2, 0, fd, fh * 0.36 + 6, fh, M.fridge, true);
+          box(f0 + fw / 2 + 2, f0 + fw, 0, fd, fh * 0.36 + 6, fh, M.fridge, true);
+        }
       } else if (s.kind !== 'gap') {
         box(a, b, 40, 540, 0, lo, M.toe);
         if (s.kind === 'oven') {

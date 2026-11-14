@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type Layout, benchTop, defaultLayout, normaliseLayout, optionFacts, seg, wallWidth } from '../src/budget/layout';
+import { type Layout, benchTop, defaultLayout, fridgeFit, normaliseLayout, optionFacts, seg, wallWidth } from '../src/budget/layout';
 import { normaliseProject } from '../src/budget/backup';
 
 const kitchen = (): Layout => ({ ...defaultLayout(), ceiling: 2394, tallH: 2086, tileW: 750, tileH: 750 });
@@ -52,5 +52,24 @@ describe('wall height options', () => {
     expect(p.layout).toEqual(l);
     expect(normaliseLayout('junk')).toBeUndefined();
     expect(normaliseProject({ sections: [] }).layout).toBeUndefined();
+  });
+
+  it('checks whether a fridge fits its space', () => {
+    const l = kitchen();
+    l.walls[0].base = [seg('tall', 900), seg('fridge', 852)];
+    l.walls[0].upper = [seg('gap', 900), { ...seg('open', 852), lo: 1786, hi: 2086 }];
+    Object.assign(l, { fridgeW: 790, fridgeD: 707, fridgeH: 1725 });
+    const text = () => fridgeFit(l).map((n) => `${n.tone}: ${n.text}`).join(' | ');
+    expect(text()).toMatch(/good: Width: 790 mm fridge in a 852 mm space leaves 62 mm spare \(31 mm each side\)/);
+    expect(text()).toMatch(/good: Height: 1725 mm fridge under a unit at 1786 mm leaves 61 mm above it/);
+    expect(text()).toMatch(/stands 122 mm in front/);
+    Object.assign(l, { fridgeW: 810, fridgeD: 650, fridgeH: 1730 });
+    expect(text()).toMatch(/leaves 42 mm spare \(21 mm each side\)/);
+    expect(text()).toMatch(/leaves 56 mm above/);
+    expect(text()).toMatch(/stands 65 mm in front/);
+    Object.assign(l, { fridgeW: 905, fridgeH: 1800 });
+    expect(text()).toMatch(/warn: Too wide.*53 mm too big/);
+    expect(text()).toMatch(/warn: Too tall.*14 mm too tall/);
+    expect(fridgeFit(defaultLayout())).toEqual([]);
   });
 });

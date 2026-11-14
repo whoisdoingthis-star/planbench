@@ -138,6 +138,9 @@ export interface Layout {
   fridgeW: number;
   fridgeD: number;
   fridgeH: number;
+  /** How the fridge's doors are split, and its colour. */
+  fridgeDoors: 'french' | 'quad';
+  fridgeColor: string;
   /** Real sizes and finishes of the other appliances, so they are drawn as the ones actually bought. */
   dishColor: string;
   ovenH: number;
@@ -160,7 +163,7 @@ export function defaultLayout(): Layout {
     options: [{ id: newId(), name: 'Standard', splash: 600, upperH: 720 }],
     chosen: null,
     floorTileW: 600, floorTileH: 600, splashRepeat: 0, benchRepeat: 0, splashTint: '#f6f0e3', splashTintPct: 0,
-    zones: [], roomWalls: [], items: [], fridgeW: 0, fridgeD: 690, fridgeH: 1790,
+    zones: [], roomWalls: [], items: [], fridgeW: 0, fridgeD: 690, fridgeH: 1790, fridgeDoors: 'french', fridgeColor: '#aeb4ba',
     dishColor: '#aeb4ba', ovenH: 598, hobD: 510, hobZones: 4, hoodW: 0, hoodD: 290,
   };
 }
@@ -264,8 +267,46 @@ export function normaliseLayout(raw: unknown): Layout | undefined {
       color: /^#[0-9a-fA-F]{6}$/.test(s(i.color)) ? s(i.color) : '#9a6a3c', chairs: Math.min(12, n(i.chairs, 0)), lift: n(i.lift, 0),
     })),
     fridgeW: n(r.fridgeW, 0), fridgeD: n(r.fridgeD, 690), fridgeH: n(r.fridgeH, 1790),
+    fridgeDoors: r.fridgeDoors === 'quad' ? 'quad' : 'french',
+    fridgeColor: /^#[0-9a-fA-F]{6}$/.test(s(r.fridgeColor)) ? s(r.fridgeColor) : '#aeb4ba',
     dishColor: /^#[0-9a-fA-F]{6}$/.test(s(r.dishColor)) ? s(r.dishColor) : '#aeb4ba',
     ovenH: n(r.ovenH, 598), hobD: n(r.hobD, 510), hobZones: Math.min(6, n(r.hobZones, 4)), hoodW: n(r.hoodW, 0), hoodD: n(r.hoodD, 290),
     ...(s(r.benchPhoto) ? { benchPhoto: s(r.benchPhoto) } : {}),
   };
+}
+
+export interface FitNote {
+  tone: 'good' | 'warn' | 'info';
+  text: string;
+}
+
+/** How well the fridge fits the space the kitchen design leaves for it. */
+export function fridgeFit(l: Layout): FitNote[] {
+  const notes: FitNote[] = [];
+  for (const w of l.walls) {
+    let at = 0;
+    for (const s of w.base) {
+      if (s.kind === 'fridge' && l.fridgeW > 0) {
+        const spare = s.w - l.fridgeW;
+        if (spare < 0) notes.push({ tone: 'warn', text: `Too wide: the fridge is ${l.fridgeW} mm and the space is ${s.w} mm, so it is ${Math.round(-spare)} mm too big.` });
+        else notes.push({ tone: spare < 20 ? 'warn' : 'good', text: `Width: ${l.fridgeW} mm fridge in a ${s.w} mm space leaves ${Math.round(spare)} mm spare (${Math.round(spare / 2)} mm each side). Check the maker's minimum air gap.` });
+        // Anything hung on the wall above the fridge's position.
+        let ua = 0;
+        let above = Infinity;
+        for (const u of w.upper) {
+          if (u.kind !== 'gap' && u.lo !== undefined && ua < at + s.w && ua + u.w > at) above = Math.min(above, u.lo);
+          ua += u.w;
+        }
+        if (above < Infinity) {
+          const gap = above - l.fridgeH;
+          if (gap < 0) notes.push({ tone: 'warn', text: `Too tall: the fridge is ${l.fridgeH} mm high and the unit above starts at ${above} mm, so it is ${Math.round(-gap)} mm too tall.` });
+          else notes.push({ tone: gap < 25 ? 'warn' : 'good', text: `Height: ${l.fridgeH} mm fridge under a unit at ${above} mm leaves ${Math.round(gap)} mm above it.` });
+        }
+        const proud = l.fridgeD - 585;
+        notes.push({ tone: 'info', text: proud > 0 ? `Depth: ${l.fridgeD} mm deep, so it stands ${Math.round(proud)} mm in front of the 585 mm cabinets (plus handles).` : `Depth: ${l.fridgeD} mm deep, which sits flush with or behind the 585 mm cabinet fronts.` });
+      }
+      at += s.w;
+    }
+  }
+  return notes;
 }

@@ -35,9 +35,11 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
   const mounted = useRef<Mounted | null>(null);
   const cam = useRef<CameraState | undefined>(undefined);
   const [problem, setProblem] = useState('');
+  const [realistic, setRealistic] = useState(() => { try { return localStorage.getItem('planbench.realistic') === '1'; } catch { return false; } });
+  const [working, setWorking] = useState(false);
   const finish = finishFrom(project);
   // Rebuild the model whenever anything it is drawn from changes.
-  const signature = JSON.stringify([layout, option, finish.door, finish.handle, finish.bench]);
+  const signature = JSON.stringify([layout, option, finish.door, finish.handle, finish.bench, realistic]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,11 +56,12 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
         ]);
         if (cancelled) return;
         if (mounted.current) cam.current = mounted.current.camera();
-        const next = await mountKitchen(el, layout, option, finish, { splash, floor, bench }, cam.current);
+        const next = await mountKitchen(el, layout, option, finish, { splash, floor, bench }, cam.current, realistic);
         if (cancelled) { next.dispose(); return; }
         mounted.current?.dispose();
         mounted.current = next;
         setProblem('');
+        setWorking(false);
       } catch (err) {
         // Most often this means the site was updated after this tab was opened: reload to get the new version.
         if (reloadIfOutOfDate(err)) return;
@@ -84,7 +87,36 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
           <button type="button" class="btn small" onClick={() => mounted.current?.view('kitchen')}>The kitchen</button>
         </div>
       )}
-      <p class="muted">Drag to look around, pinch or scroll to zoom. {finish.words.join(' · ')}</p>
+      <div class="row-actions">
+        <button
+          type="button"
+          class={`btn small ${realistic ? 'primary' : ''}`}
+          aria-pressed={realistic}
+          data-testid="realistic"
+          onClick={() => { const next = !realistic; try { localStorage.setItem('planbench.realistic', next ? '1' : '0'); } catch { /* ignore */ } setWorking(true); setRealistic(next); }}
+        >
+          {realistic ? '✓ Realistic lighting' : 'Realistic lighting'}
+        </button>
+        <button
+          type="button"
+          class="btn small"
+          onClick={() => {
+            const url = mounted.current?.picture();
+            if (!url) return;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${project.name || 'kitchen'} - ${option.name}.png`;
+            a.click();
+          }}
+        >
+          Save a picture
+        </button>
+        {working && <span class="muted" style="margin:0">Working…</span>}
+      </div>
+      <p class="muted">
+        Drag to look around, pinch or scroll to zoom. {realistic && 'Realistic lighting adds a ceiling, daylight, downlights and shadows; it can be slower on older devices. '}
+        {finish.words.join(' · ')}
+      </p>
     </div>
   );
 }

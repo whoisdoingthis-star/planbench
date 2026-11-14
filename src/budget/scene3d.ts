@@ -2,6 +2,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { type Furniture, type HeightOption, type Layout, type Segment, type Wall, benchTop, optionFacts, wallWidth } from './layout';
 
 export interface Finish {
@@ -17,6 +21,8 @@ export interface CameraState {
 
 export interface Mounted {
   dispose(): void;
+  /** The current picture, as a PNG address that can be saved. */
+  picture(): string;
   /** Jump to a standard viewpoint. */
   view(which: 'room' | 'kitchen'): void;
   camera(): CameraState;
@@ -76,6 +82,7 @@ export async function mountKitchen(
   finish: Finish,
   photos: { splash: string | null; floor: string | null; bench?: string | null },
   keep?: CameraState,
+  realistic = false,
 ): Promise<Mounted> {
   const f = optionFacts(l, o);
   const bench = benchTop(l);
@@ -124,7 +131,8 @@ export async function mountKitchen(
       const d = (d0 + d1) / 2;
       m.position.set((ox + dx * a - dz * d) * MM, ((h0 + h1) / 2) * MM, (oy + dz * a + dx * d) * MM);
       m.rotation.y = -th;
-      if (edges) m.add(new THREE.LineSegments(track(new THREE.EdgesGeometry(geo)), edgeMat));
+      // Outlines help the plain view read clearly; with realistic lighting, shadows do that job.
+      if (edges && !realistic) m.add(new THREE.LineSegments(track(new THREE.EdgesGeometry(geo)), edgeMat));
       parent.add(m);
       return m;
     };
@@ -453,21 +461,81 @@ export async function mountKitchen(
     }
   }
 
-  scene.add(new THREE.HemisphereLight('#ffffff', '#cfc8bc', 1.0));
-  const sun = new THREE.DirectionalLight('#ffffff', 0.6);
-  sun.position.set(-3, 6, 4);
-  scene.add(sun);
-
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   // Soft all-round reflections, so steel and handles look like metal rather than black.
   const pmrem = track(new THREE.PMREMGenerator(renderer));
   scene.environment = track(pmrem.fromScene(new RoomEnvironment(), 0.04)).texture;
-  scene.environmentIntensity = 0.45;
-  renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   el.appendChild(renderer.domElement);
   renderer.domElement.style.display = 'block';
   renderer.domElement.style.touchAction = 'none';
+
+  const indoor = l.zones.filter((z) => z.floor !== 'deck');
+  const room = indoor.length
+    ? { x0: Math.min(...indoor.map((z) => z.x)), x1: Math.max(...indoor.map((z) => z.x + z.w)), z0: Math.min(...indoor.map((z) => z.y)), z1: Math.max(...indoor.map((z) => z.y + z.d)) }
+    : { x0: kb.minX, x1: kb.maxX, z0: kb.minZ, z1: kb.maxZ };
+
+  if (!realistic) {
+    scene.add(new THREE.HemisphereLight('#ffffff', '#cfc8bc', 1.0));
+    const sun = new THREE.DirectionalLight('#ffffff', 0.6);
+    sun.position.set(-3, 6, 4);
+    scene.add(sun);
+    scene.environmentIntensity = 0.45;
+    renderer.toneMapping = THREE.NeutralToneMapping;
+  } else {
+    // A ceiling (seen only from below), daylight coming in from outside, and warm downlights.
+    const ceilMat = track(new THREE.MeshStandardMaterial({ color: '#f7f5f0', roughness: 0.95, side: THREE.BackSide }));
+    const zonesForCeiling = indoor.length ? indoor : [{ x: room.x0, y: room.z0, w: room.x1 - room.x0, d: room.z1 - room.z0 }];
+    for (const z of zonesForCeiling) {
+      const c = new THREE.Mesh(track(new THREE.PlaneGeometry(z.w * MM, z.d * MM)), ceilMat);
+      c.rotation.x = -Math.PI / 2;
+      c.position.set((z.x + z.w / 2) * MM, l.ceiling * MM, (z.y + z.d / 2) * MM);
+      c.userData.noShadow = true;
+      scene.add(c);
+    }
+    scene.add(new THREE.HemisphereLight('#f4f7ff', '#cbbfae', 0.22));
+    const cxm = ((room.x0 + room.x1) / 2) * MM;
+    const czm = ((room.z0 + room.z1) / 2) * MM;
+    const span = Math.max(room.x1 - room.x0, room.z1 - room.z0) * MM;
+    const sun = new THREE.DirectionalLight('#fff3df', 1.5);
+    sun.position.set(cxm - span * 0.35, span * 1.1, room.z0 * MM - span * 0.9);
+    sun.target.position.set(cxm, 0, czm);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -span; sun.shadow.camera.right = span;
+    sun.shadow.camera.top = span; sun.shadow.camera.bottom = -span;
+    sun.shadow.camera.near = 0.5; sun.shadow.camera.far = span * 4;
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.02;
+    scene.add(sun, sun.target);
+    const discMat = track(new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#fff1d6', emissiveIntensity: 2.2 }));
+    const nx = Math.max(1, Math.min(3, Math.round((room.x1 - room.x0) / 2300)));
+    const nz = Math.max(1, Math.min(3, Math.round((room.z1 - room.z0) / 2300)));
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+      const px = (room.x0 + ((room.x1 - room.x0) * (i + 0.5)) / nx) * MM;
+      const pz = (room.z0 + ((room.z1 - room.z0) * (j + 0.5)) / nz) * MM;
+      const lamp = new THREE.PointLight('#ffe9c7', 1.15, 6, 1.6);
+      lamp.position.set(px, (l.ceiling - 120) * MM, pz);
+      scene.add(lamp);
+      const disc = new THREE.Mesh(track(new THREE.CircleGeometry(0.055, 24)), discMat);
+      disc.rotation.x = Math.PI / 2;
+      disc.position.set(px, (l.ceiling - 3) * MM, pz);
+      disc.userData.noShadow = true;
+      scene.add(disc);
+    }
+    scene.environmentIntensity = 0.16;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || m.userData.noShadow) return;
+      const see = Array.isArray(m.material) ? false : (m.material as THREE.Material).transparent;
+      m.castShadow = !see && !(m.geometry instanceof THREE.PlaneGeometry);
+      m.receiveShadow = !see;
+    });
+  }
 
   const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 60);
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -520,13 +588,32 @@ export async function mountKitchen(
   const ro = new ResizeObserver(size);
   ro.observe(el);
 
+  // With realistic lighting, add soft shading where surfaces meet (under cabinets, in corners).
+  let composer: EffectComposer | null = null;
+  if (realistic) {
+    try {
+      composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      const ao = new GTAOPass(scene, camera, el.clientWidth || 800, el.clientHeight || 600);
+      ao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.2, thickness: 1.4, scale: 1.5, samples: 16 });
+      composer.addPass(ao);
+      composer.addPass(new OutputPass());
+    } catch {
+      composer = null; // not supported on this device: carry on without it
+    }
+  }
+  const resizeComposer = () => composer?.setSize(Math.max(1, el.clientWidth), Math.max(1, el.clientHeight));
+  resizeComposer();
+  const ro2 = new ResizeObserver(resizeComposer);
+  ro2.observe(el);
+
   let alive = true;
   const tick = () => {
     if (!alive) return;
     controls.update();
     // Outside walls disappear when you are looking in from behind them.
     for (const h of hideable) h.group.visible = (camera.position.x - h.px) * h.nx + (camera.position.z - h.pz) * h.nz > 0;
-    renderer.render(scene, camera);
+    if (composer) composer.render(); else renderer.render(scene, camera);
     requestAnimationFrame(tick);
   };
   tick();
@@ -535,12 +622,15 @@ export async function mountKitchen(
     dispose() {
       alive = false;
       ro.disconnect();
+      ro2.disconnect();
+      composer?.dispose();
       controls.dispose();
       for (const d of disposables) d.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
     view,
+    picture: () => { if (composer) composer.render(); else renderer.render(scene, camera); return renderer.domElement.toDataURL('image/png'); },
     camera: () => ({ pos: camera.position.toArray() as [number, number, number], target: controls.target.toArray() as [number, number, number] }),
   };
 }

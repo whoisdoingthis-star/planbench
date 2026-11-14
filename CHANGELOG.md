@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Layout: a *Realistic lighting* switch for the 3D view (ceiling, daylight, downlights, soft shadows, shading in corners) and a *Save a picture* button.
 - If the site is updated while a tab is open, the app now reloads itself to pick up the new version instead of showing an error, and comes back to the same tab.
 - Fixed: a private link opened while the app was already open in that tab did nothing. Declining to replace the project no longer blocks the link from being used later.
 - Layout: oven, cooktop, rangehood and dishwasher are drawn at their real sizes and finishes; furniture can sit off the floor (for a wall-mounted TV).

@@ -35,6 +35,8 @@ every change to this repository.
 - A **3D view** of the whole kitchen that you can turn and zoom, built from the
   wall lists. It uses the chosen door colour, handles and benchtop from the Costs
   screen, and photos of your tiles on the splashback and floor.
+- **Realistic lighting** switch for the 3D view (ceiling, daylight through the
+  windows, downlights, shadows) and a button to save the view as a picture.
 - **The room from above**: floor areas, walls with windows and doors, the kitchen
   runs, and furniture you can drag about, turn and resize. The 3D view shows the
   same room, with buttons to look at the whole room or just the kitchen.

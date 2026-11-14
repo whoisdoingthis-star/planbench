@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- The app is published automatically to GitHub Pages (via the `gh-pages` branch) whenever `main` changes.
+- The app is published automatically to GitHub Pages whenever `main` changes.
 - First version: open DXF drawings, pan and zoom with mouse, touch or pencil.
 - Layers panel to show and hide layers.
 - Measure length, area and angle, with snapping to corners, middles, centres and crossings.

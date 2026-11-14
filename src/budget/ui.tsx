@@ -61,3 +61,22 @@ export function NumberBox({ value, onValue, label, prefix, class: cls }: { value
     </span>
   );
 }
+
+/**
+ * Reloads the page when part of the app cannot be fetched because the site has been updated
+ * since this tab was opened. Returns true if a reload has been started. Only tries once in a
+ * while, so a real fault cannot cause endless reloading.
+ */
+export function reloadIfOutOfDate(err: unknown): boolean {
+  const text = String((err as Error)?.message ?? err);
+  if (!/dynamically imported module|module script failed|Failed to fetch|Unable to preload/i.test(text)) return false;
+  try {
+    const last = Number(sessionStorage.getItem('planbench.reloadedAt') ?? 0);
+    if (Date.now() - last < 60000) return false;
+    sessionStorage.setItem('planbench.reloadedAt', String(Date.now()));
+  } catch {
+    return false;
+  }
+  window.location.reload();
+  return true;
+}

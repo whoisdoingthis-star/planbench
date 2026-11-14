@@ -9,6 +9,7 @@ import { Cloud } from './budget/cloud';
 import { Sharing } from './budget/Sharing';
 import { openSharedLink, sharedLinkId } from './budget/sharedLink';
 import { replaceProject } from './budget/model';
+import { reloadIfOutOfDate } from './budget/ui';
 import './budget/budget.css';
 
 declare const __BUILD__: string;
@@ -75,13 +76,21 @@ async function followPrivateLink(): Promise<void> {
 }
 
 function Root() {
-  const [tab, setTabState] = useState<Tab>('budget');
+  // Remember which tab was open, so an automatic reload comes back to the same place.
+  const [tab, setTabState] = useState<Tab>(() => {
+    let saved: string | null = null;
+    try { saved = sessionStorage.getItem('planbench.tab'); } catch { /* ignore */ }
+    const t = TABS.some((x) => x.id === saved) ? (saved as Tab) : 'budget';
+    shell.dataset.tab = t;
+    return t;
+  });
   const [, tick] = useState(0);
   const [saveFailed, setSaveFailed] = useState(false);
   refresh = () => tick((n) => n + 1);
 
   const setTab = (t: Tab) => {
     shell.dataset.tab = t;
+    try { sessionStorage.setItem('planbench.tab', t); } catch { /* ignore */ }
     setTabState(t);
   };
   const changed = () => {
@@ -122,6 +131,8 @@ function Root() {
 render(<Root />, document.getElementById('root')!);
 (window as unknown as { planbenchStarted: boolean }).planbenchStarted = true;
 void followPrivateLink();
+// Any other part of the app that cannot be fetched after an update (for example the PDF reader).
+window.addEventListener('vite:preloadError', (e) => { if (reloadIfOutOfDate((e as unknown as { payload: unknown }).payload ?? 'Unable to preload')) e.preventDefault(); });
 // A link clicked while the app is already open only changes the part after the #, which does not
 // reload the page, so watch for that as well.
 window.addEventListener('hashchange', () => void followPrivateLink());

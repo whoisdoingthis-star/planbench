@@ -4,6 +4,7 @@ import { chosenOption } from './model';
 import type { HeightOption, Layout } from './layout';
 import type { CameraState, Finish, Mounted } from './scene3d';
 import { photoUrl } from './store';
+import { reloadIfOutOfDate } from './ui';
 
 /** Reads the look of the kitchen from what has been chosen on the Costs screen. */
 export function finishFrom(p: Project): Finish & { words: string[] } {
@@ -58,8 +59,10 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
         mounted.current?.dispose();
         mounted.current = next;
         setProblem('');
-      } catch {
-        if (!cancelled) setProblem('The 3D view could not be shown on this device.');
+      } catch (err) {
+        // Most often this means the site was updated after this tab was opened: reload to get the new version.
+        if (reloadIfOutOfDate(err)) return;
+        if (!cancelled) setProblem(`The 3D view could not be shown. Try reloading the page. (${String((err as Error)?.message ?? err).slice(0, 160)})`);
       }
     })(), mounted.current ? 250 : 0);
     return () => {

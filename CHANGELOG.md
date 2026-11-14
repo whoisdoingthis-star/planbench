@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New **Layout** screen: a wall drawn to scale, with height options compared side by side (tile cuts, gap to ceiling, alignment with the pantry).
 - Save the whole project, photos included, to one file, and open such a file to load a project.
 - **Sharing**: sign in with an emailed link, invite another person by email, and the project (costs, choices, versions and photos) stays in step between devices. Simultaneous changes are merged; offline changes are sent later.
 - Database set up in `sql/schema.sql` with access limited to invited email addresses.

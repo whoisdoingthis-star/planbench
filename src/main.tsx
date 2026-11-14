@@ -3,14 +3,16 @@ import { useState } from 'preact/hooks';
 import { App } from './ui/app';
 import { BudgetView } from './budget/BudgetView';
 import { PhotosView } from './budget/PhotosView';
+import { LayoutView } from './budget/LayoutView';
 import { loadProject, photoBlob, photoCloud, saveProject } from './budget/store';
 import { Cloud } from './budget/cloud';
 import { Sharing } from './budget/Sharing';
 import './budget/budget.css';
 
-type Tab = 'budget' | 'photos' | 'plans';
+type Tab = 'budget' | 'layout' | 'photos' | 'plans';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'budget', label: 'Costs' },
+  { id: 'layout', label: 'Layout' },
   { id: 'photos', label: 'Photos' },
   { id: 'plans', label: 'Plans' },
 ];
@@ -68,6 +70,7 @@ function Root() {
         <main class="page">
           <Sharing cloud={cloud} status={cloud.status} saveFailed={saveFailed} />
           {tab === 'budget' && <BudgetView project={project} changed={changed} />}
+          {tab === 'layout' && <LayoutView project={project} changed={changed} />}
           {tab === 'photos' && <PhotosView project={project} changed={changed} measure={measure} />}
         </main>
       )}

@@ -67,6 +67,8 @@ export interface Project {
   sections: Section[];
   versions: Version[];
   photos: Photo[];
+  /** Wall views and height options. Absent until the Layout screen is first used. */
+  layout?: import('./layout').Layout;
 }
 
 export const UNITS = ['each', 'm', 'm²', 'hours', 'job'];

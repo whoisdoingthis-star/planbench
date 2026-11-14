@@ -130,3 +130,19 @@
 
 .settings { margin-top: 10px; }
 .settings summary { cursor: pointer; color: #1f4e79; font-size: 16px; }
+
+.layout { max-width: 1500px; }
+.option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px; }
+.option-card.picked { border: 2px solid #1f4e79; background: #f6fafe; }
+.elevation { width: 100%; height: auto; display: block; margin: 12px 0 4px; background: #fff; border-radius: 10px; }
+.facts { margin: 8px 0 0; padding-left: 0; list-style: none; font-size: 16px; }
+.facts li { padding: 6px 10px 6px 34px; border-radius: 8px; margin: 4px 0; position: relative; }
+.facts li::before { position: absolute; left: 10px; font-weight: 700; }
+.facts li.good { background: #e9f6ed; } .facts li.good::before { content: "✓"; color: #1b7a3d; }
+.facts li.warn { background: #fff1e0; } .facts li.warn::before { content: "!"; color: #c2410c; }
+.facts li.info::before { content: "•"; color: #5b6672; }
+.seg-list h3 { margin: 14px 0 6px; }
+.seg-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+.seg-row select { min-width: 170px; }
+@media (max-width: 640px) { #nav .tabs button { padding: 8px 9px; font-size: 15px; } }
+.option-card .section-name { width: 100%; font-size: 18px; }

@@ -1,6 +1,7 @@
 // Saving the whole project (with its photos) to one file, and loading it back.
 import { type Item, type Option, type Photo, type Project, type Section, type Version, newId } from './model';
 import { photoBlob, storePhoto } from './store';
+import { normaliseLayout } from './layout';
 
 interface BackupFile {
   format: 'planbench-project';
@@ -58,6 +59,7 @@ export function normaliseProject(raw: unknown): Project {
     sections,
     versions,
     photos,
+    ...(normaliseLayout(r.layout) ? { layout: normaliseLayout(r.layout) } : {}),
   };
 }
 

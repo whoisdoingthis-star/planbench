@@ -25,6 +25,12 @@ every change to this repository.
 - **Save a project file** (the whole project with its photos in one file) as a
   backup, and **open a project file** to load one.
 
+**Layout**
+- Draw a wall to scale: list the units along the floor and on the wall.
+- Compare height options side by side, such as splashback height and wall
+  cabinet height. Each option shows whether tiles need cutting, how much space
+  is left under the ceiling, and whether the cabinet tops line up with the pantry.
+
 **Sharing**
 - Without signing in, everything is saved in the browser on that one device.
 - Sign in with an emailed link to share the project between devices and people.
@@ -83,7 +89,7 @@ npm run sample   # re-create the sample plan
 - `src/view` - the pan/zoom view and the canvas drawing code
 - `src/tools` - snapping and measuring
 - `src/ui` - the Plans screen: Simple and Pro modes, pointer/touch handling
-- `src/budget` - the Costs and Photos screens, the budget sums, and saving
+- `src/budget` - the Costs, Layout and Photos screens, the budget sums, and saving
 - `sql/schema.sql` - the shared database: tables and the rules for who may see what
 - `tests` - automatic tests
 

@@ -92,6 +92,39 @@ button.primary { background: var(--brand); border-color: var(--brand); color: #f
 #hint { padding: 12px 16px; font-size: 20px; min-height: 52px; }
 #pro-status { display: none; }
 
+#pages {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 6px 10px; font-size: 18px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+#pages button { font-size: 24px; line-height: 1; padding: 6px 16px; }
+#pages button:disabled { opacity: 0.35; cursor: default; }
+#busy {
+  position: absolute; inset: 0; display: grid; place-items: center; font-size: 26px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+}
+#welcome[hidden], #busy[hidden], #pages[hidden] { display: none; }
+
+dialog {
+  border: 0; border-radius: 16px; padding: 24px; width: min(480px, calc(100vw - 32px));
+  color: #1b1f24; background: #fff; box-shadow: 0 12px 40px rgba(0,0,0,0.35); font-size: 18px;
+}
+dialog::backdrop { background: rgba(0,0,0,0.45); }
+dialog h2 { margin: 0 0 8px; font-size: 24px; }
+dialog p { margin: 8px 0; color: #5b6672; }
+dialog label { display: block; margin-top: 14px; font-weight: 600; }
+dialog button { background: #fff; border-color: #d5dae0; color: #1b1f24; }
+dialog button.primary { background: #1f4e79; border-color: #1f4e79; color: #fff; }
+.scale-row { display: flex; gap: 10px; margin-top: 8px; }
+.scale-row input { flex: 1; min-width: 0; font-size: 26px; padding: 10px 12px; border: 2px solid #9aa5b1; border-radius: 10px; background: #fff; color: #1b1f24; }
+.scale-row select { font: inherit; padding: 10px; border: 2px solid #9aa5b1; border-radius: 10px; background: #fff; color: #1b1f24; }
+.preset-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.preset-row button { flex: 1; font-size: 18px; }
+#scale-presets { margin-top: 18px; padding-top: 10px; border-top: 1px solid #d5dae0; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.dialog-actions button { font-size: 19px; padding: 12px 20px; }
+.error { color: #c92a2a !important; font-weight: 600; }
+
 /* ---------- Pro mode: compact, dark, CAD-like ---------- */
 #app[data-mode="pro"] {
   --ink: #e6e9ee; --muted: #9aa5b1; --line: #3a414b; --panel: #2a2f37; --bg: #1e2228;
@@ -118,6 +151,8 @@ button.primary { background: var(--brand); border-color: var(--brand); color: #f
 #app[data-mode="pro"] #welcome p { font-size: 15px; }
 #app[data-mode="pro"] .welcome-actions button { font-size: 15px; padding: 8px 14px; }
 #app[data-mode="pro"] #done { font-size: 14px; padding: 8px 18px; }
+#app[data-mode="pro"] #pages { font-size: 13px; padding: 3px 6px; border-radius: 8px; }
+#app[data-mode="pro"] #pages button { font-size: 16px; padding: 2px 10px; }
 .cmd { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .cmd input { flex: 1; min-width: 0; background: #15181d; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; text-transform: uppercase; }
 #snaps { display: flex; gap: 4px; }

@@ -12,7 +12,11 @@ every change to this repository.
 
 ## What it does today
 
-- Opens **DXF** drawings (drag a file in, or press *Open a file*).
+- Opens **DXF** drawings, **PDF** plans (including several pages) and **pictures**
+  of plans such as scans or photos (drag a file in, or press *Open a file*).
+- **Set the scale** of a PDF or picture: mark a line whose real length you know
+  and type that length, or for a PDF pick the scale printed on it (1:50, 1:100...).
+  After that, measurements are in real sizes.
 - Move around and zoom with a mouse, a finger, or a pencil.
 - Switch **layers** on and off.
 - Measure a **length**, an **area** or an **angle**. The pointer locks onto
@@ -30,7 +34,7 @@ Everything is measured in millimetres and shown in mm, m and m².
 
 | Stage | What it adds |
 |---|---|
-| 1 (in progress) | PDF and picture plans with a set-the-scale step, 3D files (STL, OBJ, STEP), DWG, notes on drawings, login and saving across devices |
+| 1 (in progress) | 3D files (STL, OBJ, STEP), DWG, notes on drawings, login and saving across devices |
 | 2 | Tracing over a plan; smart walls, doors and windows; dimensions; 3D preview |
 | 3 | Furniture and fixture library, room areas and material quantities, before/after options |
 | 4 | Print-to-scale PDF, DXF export, quantities spreadsheet |

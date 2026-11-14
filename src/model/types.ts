@@ -58,6 +58,18 @@ export interface TextPrim extends PrimBase {
 
 export type Prim = PathPrim | CirclePrim | ArcPrim | TextPrim;
 
+/** A picture (a scanned plan, a photo, or a PDF page) shown underneath everything else. */
+export interface Underlay {
+  image: CanvasImageSource;
+  /** Bottom-left corner and size, in millimetres. */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** For PDFs: the width of the printed page in millimetres, so "1:100" style scales can be applied. */
+  paperW?: number;
+}
+
 export interface Drawing {
   name: string;
   layers: Layer[];
@@ -65,6 +77,9 @@ export interface Drawing {
   bbox: BBox;
   /** Plain-words note about the units the file said it used. */
   unitNote: string;
+  underlay?: Underlay;
+  /** False until we know real sizes (pictures and PDFs need their scale setting first). */
+  scaled: boolean;
 }
 
 export type Pt = [number, number];
@@ -82,4 +97,26 @@ export function growBBox(b: BBox, x: number, y: number): void {
 
 export function bboxValid(b: BBox): boolean {
   return Number.isFinite(b.minX) && Number.isFinite(b.maxX) && Number.isFinite(b.minY) && Number.isFinite(b.maxY);
+}
+
+/** Makes everything in the drawing `k` times bigger, measured from the origin. Used when setting the scale. */
+export function scaleDrawing(d: Drawing, k: number): void {
+  const box = (b: BBox) => {
+    b.minX *= k; b.minY *= k; b.maxX *= k; b.maxY *= k;
+  };
+  for (const p of d.prims) {
+    box(p.bbox);
+    if (p.k === 'path') {
+      for (let i = 0; i < p.pts.length; i++) p.pts[i] *= k;
+    } else if (p.k === 'text') {
+      p.x *= k; p.y *= k; p.h *= k;
+    } else {
+      p.cx *= k; p.cy *= k; p.r *= k;
+    }
+  }
+  box(d.bbox);
+  if (d.underlay) {
+    d.underlay.x *= k; d.underlay.y *= k; d.underlay.w *= k; d.underlay.h *= k;
+  }
+  d.scaled = true;
 }

@@ -6,6 +6,8 @@ import { fmtArea, fmtLength } from '../src/model/format';
 import { findSnap, type SnapKind } from '../src/tools/snap';
 import { resultText } from '../src/tools/measure';
 import { Viewport } from '../src/view/viewport';
+import { scaleDrawing } from '../src/model/types';
+import { factorFromKnownLength, factorFromPrintedScale } from '../src/io/raster';
 
 const sample = () => parseDxf(readFileSync(new URL('../public/samples/flat.dxf', import.meta.url), 'utf8'), 'sample');
 const ALL = new Set<SnapKind>(['end', 'mid', 'cen', 'int', 'near']);
@@ -106,5 +108,28 @@ describe('measuring and the view', () => {
     const s = v.toScreen(before[0], before[1]);
     expect(s[0]).toBeCloseTo(123);
     expect(s[1]).toBeCloseTo(456);
+  });
+});
+
+describe('setting the scale', () => {
+  it('works out the enlargement from a known length or a printed scale', () => {
+    expect(factorFromKnownLength(50, 3600)).toBe(72);
+    expect(() => factorFromKnownLength(0, 100)).toThrow();
+    // An A3 sheet (420 mm wide) at 1:100 is 42 m wide in real life.
+    const sheet = { image: {} as CanvasImageSource, x: 0, y: 0, w: 420, h: 297, paperW: 420 };
+    expect(factorFromPrintedScale(sheet, 100)).toBe(100);
+    // Choosing again after an earlier (wrong) scale still gives the right answer.
+    sheet.w = 840;
+    expect(factorFromPrintedScale(sheet, 100)).toBe(50);
+  });
+
+  it('enlarges everything in the drawing together', () => {
+    const d = sample();
+    scaleDrawing(d, 2);
+    expect(d.bbox.maxX).toBeCloseTo(18000);
+    const circle = d.prims.find((p) => p.k === 'circle')!;
+    expect(circle.k === 'circle' && [circle.cx, circle.cy, circle.r]).toEqual([5200, 8600, 900]);
+    expect(findSnap(d, 10, 10, 100, ALL)).toMatchObject({ x: 0, y: 0, kind: 'end' });
+    expect(findSnap(d, 17990, 13990, 100, ALL)).toMatchObject({ x: 18000, y: 14000, kind: 'end' });
   });
 });

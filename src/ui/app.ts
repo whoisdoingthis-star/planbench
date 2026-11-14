@@ -1,5 +1,6 @@
-import type { Drawing, Pt } from '../model/types';
+import { type Drawing, type Pt, scaleDrawing } from '../model/types';
 import { parseDxf } from '../io/dxf';
+import { type PdfFile, factorFromKnownLength, factorFromPrintedScale, openImage, openPdf } from '../io/raster';
 import { Viewport } from '../view/viewport';
 import { DARK, PAPER, type Theme, drawDrawing, readable } from '../view/renderer';
 import { type Snap, type SnapKind, SNAP_NAMES, findSnap } from '../tools/snap';
@@ -8,7 +9,7 @@ import { fmtLength } from '../model/format';
 import { dist } from '../model/geom';
 
 type Mode = 'simple' | 'pro';
-type Tool = 'pan' | MeasureKind;
+type Tool = 'pan' | 'scale' | MeasureKind;
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const ACCENT = '#e8590c';
@@ -33,6 +34,7 @@ const BUTTONS: ToolButton[] = [
   { id: 'length', simple: 'Measure a length', pro: 'Distance', key: 'DI', icon: svg('<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>'), tool: 'length' },
   { id: 'area', simple: 'Measure an area', pro: 'Area', key: 'AA', icon: svg('<path d="M4 4h16v10h-7v6H4z"/>'), tool: 'area' },
   { id: 'angle', simple: 'Measure an angle', pro: 'Angle', key: 'ANG', icon: svg('<path d="M4 20h16M4 20L16 5"/><path d="M11 20a8 8 0 0 0-2.2-5.5"/>'), tool: 'angle' },
+  { id: 'scale', simple: 'Set the scale', pro: 'Scale', key: 'SC', icon: svg('<path d="M3 8v8M21 8v8M3 12h18"/><path d="M8 10v4M12 9v6M16 10v4"/>'), tool: 'scale' },
   { id: 'fit', simple: 'Show whole drawing', pro: 'Zoom extents', key: 'Z', icon: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="9" y="9" width="6" height="6"/>'), run: (a) => a.fit(), gapBefore: true },
   { id: 'layers', simple: 'Layers', pro: 'Layers', key: 'LA', icon: svg('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'), run: (a) => a.toggleLayers() },
   { id: 'clear', simple: 'Clear measurements', pro: 'Clear', key: 'CLEAR', icon: svg('<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>'), run: (a) => a.clearMeasurements() },
@@ -44,6 +46,7 @@ const ALIASES: Record<string, string> = {
   DI: 'length', DIST: 'length', MEASURE: 'length', L: 'length',
   AA: 'area', AREA: 'area',
   ANG: 'angle', ANGLE: 'angle',
+  SC: 'scale', SCALE: 'scale',
   Z: 'fit', ZE: 'fit', ZOOM: 'fit', FIT: 'fit',
   LA: 'layers', LAYER: 'layers', LAYERS: 'layers',
   CLEAR: 'clear', E: 'clear', ERASE: 'clear',
@@ -82,6 +85,8 @@ export class App {
   private gestureLock = false;
   private spaceHeld = false;
   private toastTimer = 0;
+  private pdf: { file: PdfFile; name: string; page: number } | null = null;
+  private scaleLine: [Pt, Pt] | null = null;
 
   constructor() {
     let saved: string | null = null;
@@ -143,6 +148,24 @@ export class App {
     $('layers-all').addEventListener('click', () => this.setAllLayers(true));
     $('layers-none').addEventListener('click', () => this.setAllLayers(false));
 
+    $('page-prev').addEventListener('click', () => void this.showPdfPage((this.pdf?.page ?? 1) - 1));
+    $('page-next').addEventListener('click', () => void this.showPdfPage((this.pdf?.page ?? 1) + 1));
+
+    const dialog = $<HTMLDialogElement>('scale-dialog');
+    $('scale-form').addEventListener('submit', (e) => { e.preventDefault(); this.applyTypedScale(); });
+    $('scale-cancel').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => {
+      // Closed without setting a scale (Cancel or Esc): forget the line that was marked.
+      if (!this.scaleLine) return;
+      this.scaleLine = null;
+      this.points = [];
+      this.updateHint();
+      this.dirty = true;
+    });
+    for (const b of dialog.querySelectorAll<HTMLButtonElement>('[data-scale]')) {
+      b.addEventListener('click', () => this.applyPrintedScale(Number(b.dataset.scale)));
+    }
+
     const file = $<HTMLInputElement>('file');
     file.addEventListener('change', () => {
       const f = file.files?.[0];
@@ -177,7 +200,8 @@ export class App {
 
     window.addEventListener('keydown', (e) => {
       const t = e.target as HTMLElement;
-      if (t instanceof HTMLInputElement && t.type === 'text') return;
+      if ((t instanceof HTMLInputElement && t.type === 'text') || t instanceof HTMLSelectElement) return;
+      if ($<HTMLDialogElement>('scale-dialog').open) return;
       if (e.key === 'Escape') this.cancel();
       else if (e.key === 'Enter') { e.preventDefault(); this.finish(); }
       else if (e.key === ' ') { e.preventDefault(); this.spaceHeld = true; this.canvas.style.cursor = 'grab'; }
@@ -206,21 +230,46 @@ export class App {
 
   async openFile(f: File): Promise<void> {
     const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
-    if (ext !== 'dxf') {
-      const later: Record<string, string> = {
-        dwg: 'DWG files will open in a later version. For now, ask for the drawing to be saved as DXF.',
-        pdf: 'PDF plans will open in a later version.',
-        png: 'Picture plans will open in a later version.', jpg: 'Picture plans will open in a later version.', jpeg: 'Picture plans will open in a later version.',
-        stl: '3D files will open in a later version.', obj: '3D files will open in a later version.',
-        step: '3D files will open in a later version.', stp: '3D files will open in a later version.',
-      };
-      this.toast(later[ext] ?? 'Planbench cannot open this kind of file. Please choose a DXF drawing.');
-      return;
-    }
+    const later: Record<string, string> = {
+      dwg: 'DWG files will open in a later version. For now, ask for the drawing to be saved as DXF or PDF.',
+      stl: '3D files will open in a later version.', obj: '3D files will open in a later version.',
+      step: '3D files will open in a later version.', stp: '3D files will open in a later version.',
+    };
+    $('busy').hidden = false;
     try {
-      this.load(parseDxf(await f.text(), f.name));
+      if (ext === 'dxf') {
+        this.pdf = null;
+        this.load(parseDxf(await f.text(), f.name));
+      } else if (ext === 'pdf') {
+        const file = await openPdf(await f.arrayBuffer());
+        this.pdf = { file, name: f.name, page: 1 };
+        await this.showPdfPage(1);
+      } else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+        this.pdf = null;
+        this.load(await openImage(f, f.name));
+      } else {
+        this.toast(later[ext] ?? 'Planbench cannot open this kind of file. Please choose a DXF, PDF or picture.');
+      }
     } catch (err) {
       this.toast(err instanceof Error ? err.message : 'This file could not be opened.');
+    } finally {
+      $('busy').hidden = true;
+    }
+  }
+
+  private async showPdfPage(n: number): Promise<void> {
+    const pdf = this.pdf;
+    if (!pdf || n < 1 || n > pdf.file.pageCount) return;
+    $('busy').hidden = false;
+    try {
+      const label = pdf.file.pageCount > 1 ? `${pdf.name} (page ${n})` : pdf.name;
+      const d = await pdf.file.page(n, label);
+      pdf.page = n;
+      this.load(d);
+    } catch {
+      this.toast('This page of the PDF could not be shown.');
+    } finally {
+      $('busy').hidden = true;
     }
   }
 
@@ -231,11 +280,23 @@ export class App {
     this.lastResult = '';
     this.hover = null;
     $('welcome').hidden = true;
-    $('welcome').style.display = 'none';
+    const pages = this.pdf && this.pdf.file.pageCount > 1 ? this.pdf : null;
+    $('pages').hidden = !pages;
+    if (pages) {
+      $('page-label').textContent = `Page ${pages.page} of ${pages.file.pageCount}`;
+      $<HTMLButtonElement>('page-prev').disabled = pages.page <= 1;
+      $<HTMLButtonElement>('page-next').disabled = pages.page >= pages.file.pageCount;
+    }
     $('filename').textContent = d.name;
     this.buildLayerList();
     this.fit();
-    this.toast(`Opened. ${d.unitNote}`);
+    if (d.scaled) {
+      this.toast(`Opened. ${d.unitNote}`);
+      if (this.tool === 'scale') this.setTool('pan');
+    } else {
+      // Pictures and PDFs: go straight to setting the scale, so measurements come out right.
+      this.setTool('scale');
+    }
     this.updateHint();
   }
 
@@ -247,6 +308,7 @@ export class App {
     const d = this.drawing;
     if (!d) return;
     const used = new Set(d.prims.map((p) => p.layer));
+    $('layers-empty').hidden = used.size > 0;
     d.layers.forEach((layer, i) => {
       if (!used.has(i)) return;
       const li = document.createElement('li');
@@ -352,7 +414,7 @@ export class App {
 
   /** Finish a measurement that takes any number of points (area). */
   private finish(): void {
-    if (this.tool === 'pan') return;
+    if (this.tool === 'pan' || this.tool === 'scale') return;
     // A double-click adds the same point twice; drop repeats.
     const pts = this.points.filter((p, i, all) => i === 0 || dist(p, all[i - 1]) > 1e-6);
     const m: Measurement = { kind: this.tool, pts };
@@ -365,13 +427,68 @@ export class App {
   private store(m: Measurement): void {
     this.measurements.push(m);
     this.lastResult = resultSentence(m, this.mode === 'pro');
+    if (this.drawing && !this.drawing.scaled) this.lastResult += '  — The scale has not been set yet, so this size is not real.';
+  }
+
+  // ---------------------------------------------------------------- setting the scale
+
+  private askScale(a: Pt, b: Pt): void {
+    if (dist(a, b) === 0) { this.points = []; this.toast('Those two points are in the same place. Please try again.'); return; }
+    this.scaleLine = [a, b];
+    const d = this.drawing!;
+    $('scale-now').textContent = d.scaled
+      ? `At the moment that line measures ${fmtLength(dist(a, b))}.`
+      : 'You have marked a line on the plan.';
+    $('scale-presets').hidden = !d.underlay?.paperW;
+    $('scale-error').hidden = true;
+    const input = $<HTMLInputElement>('scale-length');
+    input.value = '';
+    $<HTMLDialogElement>('scale-dialog').showModal();
+    input.focus();
+  }
+
+  private applyTypedScale(): void {
+    const raw = $<HTMLInputElement>('scale-length').value.trim().replace(',', '.');
+    const value = Number(raw);
+    const err = $('scale-error');
+    if (!this.scaleLine || raw === '' || !Number.isFinite(value) || value <= 0) {
+      err.textContent = 'Please type the length as a number, for example 3.6';
+      err.hidden = false;
+      return;
+    }
+    const real = value * Number($<HTMLSelectElement>('scale-unit').value);
+    this.rescale(factorFromKnownLength(dist(this.scaleLine[0], this.scaleLine[1]), real));
+    this.toast(`Scale set. That line is now ${fmtLength(real)}.`);
+  }
+
+  private applyPrintedScale(oneTo: number): void {
+    const u = this.drawing?.underlay;
+    if (!u) return;
+    this.rescale(factorFromPrintedScale(u, oneTo));
+    this.toast(`Scale set to 1:${oneTo}.`);
+  }
+
+  private rescale(k: number): void {
+    const d = this.drawing!;
+    scaleDrawing(d, k);
+    for (const m of this.measurements) m.pts = m.pts.map((p) => [p[0] * k, p[1] * k] as Pt);
+    // Keep the picture exactly where it is on screen.
+    this.view.cx *= k;
+    this.view.cy *= k;
+    this.view.zoom /= k;
+    this.lastResult = '';
+    this.scaleLine = null;
+    $<HTMLDialogElement>('scale-dialog').close();
+    this.setTool('length');
   }
 
   private addPoint(p: Pt): void {
     if (this.tool === 'pan' || !this.drawing) return;
     this.points.push(p);
     this.lastResult = '';
-    if (this.points.length >= pointsNeeded(this.tool)) {
+    if (this.tool === 'scale') {
+      if (this.points.length === 2) this.askScale(this.points[0], this.points[1]);
+    } else if (this.points.length >= pointsNeeded(this.tool)) {
       this.store({ kind: this.tool, pts: this.points });
       this.points = [];
     }
@@ -400,6 +517,9 @@ export class App {
     if (!this.drawing) text = 'Open a drawing to begin.';
     else if (this.lastResult && n === 0) text = this.lastResult;
     else if (this.tool === 'pan') text = this.coarse ? 'Drag to move around. Pinch with two fingers to zoom.' : 'Drag to move around. Scroll to zoom in and out.';
+    else if (this.tool === 'scale') text = n === 0
+      ? `To set the scale, find something whose real length you know, such as a wall with its size written on it. ${tap} one end of it.`
+      : `Now ${tap.toLowerCase()} the other end.`;
     else if (this.tool === 'length') text = n === 0 ? `${tap} the first point.` : `Now ${tap.toLowerCase()} the second point.`;
     else if (this.tool === 'angle') text = [`${tap} a point on the first line.`, `Now ${tap.toLowerCase()} the corner.`, `Now ${tap.toLowerCase()} a point on the second line.`][n];
     else text = n < 3 ? `${tap} each corner of the area in turn. (${n} so far)` : `Keep going round the corners, then press Done. (${n} so far)`;
@@ -617,9 +737,9 @@ export class App {
 
     // The measurement being made right now, with a line following the pointer.
     if (this.tool !== 'pan' && this.points.length) {
-      const live = this.hover ? [...this.points, this.hover.pt] : this.points;
+      const live = this.hover && !this.scaleLine ? [...this.points, this.hover.pt] : this.points;
       stroke(live, this.tool === 'area' && live.length > 2, this.tool === 'area');
-      if (this.hover && this.tool !== 'angle') {
+      if (this.hover && this.tool !== 'angle' && this.tool !== 'scale') {
         const a = live[live.length - 2];
         const b = live[live.length - 1];
         const [mx, my] = v.toScreen((a[0] + b[0]) / 2, (a[1] + b[1]) / 2);

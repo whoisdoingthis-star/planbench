@@ -57,6 +57,15 @@ export function drawDrawing(ctx: CanvasRenderingContext2D, d: Drawing, v: Viewpo
   const z = v.zoom;
   const ox = v.w / 2 - v.cx * z;
   const oy = v.h / 2 + v.cy * z;
+  if (d.underlay) {
+    const u = d.underlay;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(u.image, u.x * z + ox, oy - (u.y + u.h) * z, u.w * z, u.h * z);
+    // A faint edge, so a white page can be seen on a white background.
+    ctx.strokeStyle = theme.dark ? '#4a525d' : '#c3cad2';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(u.x * z + ox, oy - (u.y + u.h) * z, u.w * z, u.h * z);
+  }
   ctx.lineWidth = 1;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';

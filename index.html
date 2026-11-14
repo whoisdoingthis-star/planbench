@@ -24,7 +24,7 @@
         <canvas id="canvas"></canvas>
         <div id="welcome">
           <h1>Open a drawing to begin</h1>
-          <p>Planbench opens DXF drawings so you can look around, switch layers on and off, and measure.</p>
+          <p>Planbench opens DXF drawings, PDF plans and pictures of plans so you can look around and measure.</p>
           <div class="welcome-actions">
             <button id="welcome-open" type="button" class="primary">Open a file</button>
             <button id="welcome-sample" type="button">Try a sample plan</button>
@@ -32,6 +32,12 @@
           <p class="small">You can also drag a file from your computer and drop it here.</p>
         </div>
         <button id="done" type="button" class="primary" hidden>Done</button>
+        <div id="pages" hidden>
+          <button id="page-prev" type="button" aria-label="Previous page">&lsaquo;</button>
+          <span id="page-label">Page 1 of 1</span>
+          <button id="page-next" type="button" aria-label="Next page">&rsaquo;</button>
+        </div>
+        <div id="busy" hidden>Opening&hellip;</div>
         <div id="toast" role="status" hidden></div>
       </main>
 
@@ -46,6 +52,7 @@
           <button id="layers-none" type="button">Hide all</button>
         </div>
         <ul id="layer-list"></ul>
+        <p id="layers-empty" class="panel-help" hidden>Pictures and PDF plans do not have layers.</p>
       </aside>
 
       <footer id="status">
@@ -58,7 +65,36 @@
           <div id="coords">X 0.0  Y 0.0</div>
         </div>
       </footer>
-      <input id="file" type="file" accept=".dxf,.dwg,.pdf,.stl,.obj,.step,.stp,.png,.jpg,.jpeg" hidden />
+      <input id="file" type="file" accept=".dxf,.dwg,.pdf,.stl,.obj,.step,.stp,.png,.jpg,.jpeg,.webp" hidden />
+
+      <dialog id="scale-dialog" aria-labelledby="scale-title">
+        <form method="dialog" id="scale-form">
+          <h2 id="scale-title">Set the scale</h2>
+          <p id="scale-now"></p>
+          <label for="scale-length">How long is that line in real life?</label>
+          <div class="scale-row">
+            <input id="scale-length" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 3.6" />
+            <select id="scale-unit" aria-label="Unit">
+              <option value="1000">metres</option>
+              <option value="1">millimetres</option>
+            </select>
+          </div>
+          <p id="scale-error" class="error" role="alert" hidden></p>
+          <div id="scale-presets">
+            <p>Or choose the scale printed on the plan:</p>
+            <div class="preset-row">
+              <button type="button" data-scale="20">1:20</button>
+              <button type="button" data-scale="50">1:50</button>
+              <button type="button" data-scale="100">1:100</button>
+              <button type="button" data-scale="200">1:200</button>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <button type="button" id="scale-cancel">Cancel</button>
+            <button type="submit" class="primary">Set the scale</button>
+          </div>
+        </form>
+      </dialog>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

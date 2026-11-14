@@ -105,7 +105,7 @@ export function convertDxf(dxf: any, name: string): Drawing {
     }
   }
   if (!bboxValid(bbox)) Object.assign(bbox, { minX: 0, minY: 0, maxX: 1000, maxY: 1000 });
-  return { name, layers, prims: ctx.prims, bbox, unitNote };
+  return { name, layers, prims: ctx.prims, bbox, unitNote, scaled: true };
 }
 
 function layerOf(ctx: Ctx, name: string | undefined): number {

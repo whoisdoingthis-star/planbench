@@ -60,10 +60,14 @@ async function followPrivateLink(): Promise<void> {
       replaceProject(project, next);
       saveProject(project);
       cloud.localChanged();
+      // Only remember the link once it has actually been loaded, so saying "no" can be changed later.
+      try { localStorage.setItem(seenKey, '1'); } catch { /* ignore */ }
+      linkMessage = `Loaded “${next.name}” from the link.`;
+      window.setTimeout(() => { if (linkMessage.startsWith('Loaded')) { linkMessage = ''; refresh(); } }, 6000);
+    } else {
+      linkMessage = 'Nothing was changed. Open the link again if you do want to load it.';
     }
-    try { localStorage.setItem(seenKey, '1'); } catch { /* ignore */ }
     clear();
-    linkMessage = '';
   } catch (err) {
     linkMessage = err instanceof Error ? err.message : 'The link could not be opened.';
   }
@@ -118,3 +122,6 @@ function Root() {
 render(<Root />, document.getElementById('root')!);
 (window as unknown as { planbenchStarted: boolean }).planbenchStarted = true;
 void followPrivateLink();
+// A link clicked while the app is already open only changes the part after the #, which does not
+// reload the page, so watch for that as well.
+window.addEventListener('hashchange', () => void followPrivateLink());

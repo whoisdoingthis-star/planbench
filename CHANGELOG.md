@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: a private link opened while the app was already open in that tab did nothing. Declining to replace the project no longer blocks the link from being used later.
 - Layout: oven, cooktop, rangehood and dishwasher are drawn at their real sizes and finishes; furniture can sit off the floor (for a wall-mounted TV).
 - Layout: the whole room can be drawn (floor areas, walls with windows and doors, a deck) with furniture that can be dragged on a top-down plan; the 3D view shows it all and has whole-room and kitchen viewpoints.
 - Layout: the fridge is drawn at its real size, and a wall unit can sit at its own height (such as an open box over the fridge).

@@ -7,6 +7,8 @@ import { LayoutView } from './budget/LayoutView';
 import { loadProject, photoBlob, photoCloud, saveProject } from './budget/store';
 import { Cloud } from './budget/cloud';
 import { Sharing } from './budget/Sharing';
+import { openSharedLink, sharedLinkId } from './budget/sharedLink';
+import { replaceProject } from './budget/model';
 import './budget/budget.css';
 
 type Tab = 'budget' | 'layout' | 'photos' | 'plans';
@@ -34,6 +36,36 @@ const cloud = new Cloud(
 photoCloud.queue = (ids) => cloud.queuePhotos(ids);
 photoCloud.download = (id) => cloud.downloadPhoto(id);
 photoCloud.remove = (id) => cloud.deletePhoto(id);
+
+// A private link (…#open=…) loads the project it points at, once per device.
+let linkMessage = '';
+async function followPrivateLink(): Promise<void> {
+  const hash = window.location.hash;
+  const id = sharedLinkId(hash);
+  if (!hash.startsWith('#open=')) return;
+  const seenKey = `planbench.opened.${id}`;
+  const clear = () => window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  try {
+    let seen = false;
+    try { seen = !!id && localStorage.getItem(seenKey) === '1'; } catch { /* private window */ }
+    if (seen) { clear(); return; } // already loaded here before: keep any changes made since
+    linkMessage = 'Opening your project…';
+    refresh();
+    const next = await openSharedLink(hash, import.meta.env.BASE_URL);
+    const hasWork = project.sections.some((s) => s.items.some((i) => i.options.length > 0));
+    if (!hasWork || confirm(`Replace what is on this device with “${next.name}” from the link?`)) {
+      replaceProject(project, next);
+      saveProject(project);
+      cloud.localChanged();
+    }
+    try { localStorage.setItem(seenKey, '1'); } catch { /* ignore */ }
+    clear();
+    linkMessage = '';
+  } catch (err) {
+    linkMessage = err instanceof Error ? err.message : 'The link could not be opened.';
+  }
+  refresh();
+}
 
 function Root() {
   const [tab, setTabState] = useState<Tab>('budget');
@@ -68,6 +100,7 @@ function Root() {
       </nav>
       {tab !== 'plans' && (
         <main class="page">
+          {linkMessage && <div class="share-bar warn" role="status" data-testid="link-message">{linkMessage}</div>}
           <Sharing cloud={cloud} status={cloud.status} saveFailed={saveFailed} />
           {tab === 'budget' && <BudgetView project={project} changed={changed} />}
           {tab === 'layout' && <LayoutView project={project} changed={changed} />}
@@ -79,3 +112,4 @@ function Root() {
 }
 
 render(<Root />, document.getElementById('root')!);
+void followPrivateLink();

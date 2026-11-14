@@ -25,6 +25,12 @@ every change to this repository.
 - **Save a project file** (the whole project with its photos in one file) as a
   backup, and **open a project file** to load one.
 
+**Private links**
+- A project can be placed on the site in locked (encrypted) form and opened with
+  a private link. The key is the part of the link after the `#`, which is never
+  sent to the server, so only people who have the link can read the project.
+  `npm run seal -- "path/to/file.planbench.json"` creates the locked copy and prints the link ending.
+
 **Layout**
 - Draw a wall to scale: list the units along the floor and on the wall.
 - Compare height options side by side, such as splashback height and wall

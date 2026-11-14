@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "sample": "node scripts/make-sample.mjs",
     "check": "npm run typecheck && npm run test && npm run build",
-    "assets": "node scripts/copy-assets.mjs"
+    "assets": "node scripts/copy-assets.mjs",
+    "seal": "node scripts/seal-project.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

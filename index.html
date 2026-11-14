@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#1f4e79" />
+    <title>Planbench</title>
+    <script type="module" crossorigin src="./assets/index-pRTwcZr7.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-25HPoTRx.css">
+  </head>
+  <body>
+    <div id="app" data-mode="simple">
+      <header id="topbar">
+        <div class="brand">Planbench</div>
+        <div id="filename" class="filename"></div>
+        <div class="modes" role="group" aria-label="Choose how the screen looks">
+          <button id="mode-simple" type="button">Simple</button>
+          <button id="mode-pro" type="button">Pro</button>
+        </div>
+      </header>
+
+      <nav id="tools" aria-label="Tools"></nav>
+
+      <main id="stage">
+        <canvas id="canvas"></canvas>
+        <div id="welcome">
+          <h1>Open a drawing to begin</h1>
+          <p>Planbench opens DXF drawings so you can look around, switch layers on and off, and measure.</p>
+          <div class="welcome-actions">
+            <button id="welcome-open" type="button" class="primary">Open a file</button>
+            <button id="welcome-sample" type="button">Try a sample plan</button>
+          </div>
+          <p class="small">You can also drag a file from your computer and drop it here.</p>
+        </div>
+        <button id="done" type="button" class="primary" hidden>Done</button>
+        <div id="toast" role="status" hidden></div>
+      </main>
+
+      <aside id="layers" aria-label="Layers">
+        <div class="panel-head">
+          <strong>Layers</strong>
+          <button id="layers-close" type="button" aria-label="Close layers">Close</button>
+        </div>
+        <p class="panel-help">Layers are like sheets of tracing paper. Untick one to hide it.</p>
+        <div class="panel-actions">
+          <button id="layers-all" type="button">Show all</button>
+          <button id="layers-none" type="button">Hide all</button>
+        </div>
+        <ul id="layer-list"></ul>
+      </aside>
+
+      <footer id="status">
+        <div id="hint" aria-live="polite"></div>
+        <div id="pro-status">
+          <label class="cmd"><span>Command:</span>
+            <input id="cmd" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="DI, AA, ANG, Z, P, OPEN, CLEAR, HELP" />
+          </label>
+          <div id="snaps" role="group" aria-label="Snaps"></div>
+          <div id="coords">X 0.0  Y 0.0</div>
+        </div>
+      </footer>
+      <input id="file" type="file" accept=".dxf,.dwg,.pdf,.stl,.obj,.step,.stp,.png,.jpg,.jpeg" hidden />
+    </div>
+  </body>
+</html>

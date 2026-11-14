@@ -98,6 +98,22 @@
       </dialog>
     </div>
    </div>
+    <div id="load-problem" hidden style="position:fixed;left:0;right:0;bottom:0;padding:14px;background:#fff4d6;border-top:2px solid #e0b84a;font:18px system-ui,sans-serif;text-align:center;z-index:99">
+      Planbench did not load completely. <button type="button" onclick="location.reload()" style="font:inherit;padding:6px 14px">Reload the page</button>
+    </div>
+    <script>
+      // If the app has not started a few seconds after the page opens (for example because the
+      // site was being updated at that moment), reload once, and after that offer a button.
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          if (window.planbenchStarted) { try { sessionStorage.removeItem('planbench.retried'); } catch (e) {} return; }
+          var retried = false;
+          try { retried = sessionStorage.getItem('planbench.retried') === '1'; sessionStorage.setItem('planbench.retried', '1'); } catch (e) { retried = true; }
+          if (retried) document.getElementById('load-problem').hidden = false;
+          else location.reload();
+        }, 6000);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -116,4 +116,5 @@ function Root() {
 }
 
 render(<Root />, document.getElementById('root')!);
+(window as unknown as { planbenchStarted: boolean }).planbenchStarted = true;
 void followPrivateLink();

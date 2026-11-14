@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The styling is now built into the page, so the app can no longer appear unstyled if it is opened while the site is updating. If the app fails to start, the page reloads itself once and then offers a reload button.
 - Costs: each option can be given a colour, which the 3D view uses for doors, handles and benchtop.
 - The app shows its version (build date and time) at the bottom of each screen.
 - Layout: the benchtop pattern repeats without visible joins.

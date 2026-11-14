@@ -34,7 +34,7 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
 }
 
 /** One tile as a picture: the photo (repeated if it shows only part of the tile) with a grout line round it. */
-function tileTexture(img: HTMLImageElement | null, tileW: number, tileH: number, repeatMm: number, plain: string, grout: string): THREE.CanvasTexture {
+function tileTexture(img: HTMLImageElement | null, tileW: number, tileH: number, repeatMm: number, plain: string, grout: string, wash?: { color: string; pct: number }): THREE.CanvasTexture {
   const scale = 512 / Math.max(tileW, tileH);
   const c = document.createElement('canvas');
   c.width = Math.max(8, Math.round(tileW * scale));
@@ -49,6 +49,13 @@ function tileTexture(img: HTMLImageElement | null, tileW: number, tileH: number,
     } else {
       g.drawImage(img, 0, 0, c.width, c.height);
     }
+  }
+  if (wash && wash.pct > 0) {
+    // Lighten or warm the photo towards a chosen colour; photos rarely match the real tile exactly.
+    g.globalAlpha = Math.min(1, wash.pct / 100);
+    g.fillStyle = wash.color;
+    g.fillRect(0, 0, c.width, c.height);
+    g.globalAlpha = 1;
   }
   g.strokeStyle = grout;
   g.lineWidth = Math.max(2, 3 * scale);
@@ -97,7 +104,7 @@ export async function mountKitchen(
   const benchTex = benchImg ? track(new THREE.Texture(benchImg)) : null;
   // Each repeat is flipped against its neighbour, so the pattern runs on without visible joins.
   if (benchTex) { benchTex.wrapS = benchTex.wrapT = THREE.MirroredRepeatWrapping; benchTex.colorSpace = THREE.SRGBColorSpace; benchTex.anisotropy = 8; benchTex.needsUpdate = true; }
-  const splashTile = track(tileTexture(splashImg, l.tileW || 300, l.tileH || 300, splashImg ? l.splashRepeat : 0, '#e6ecef', '#f5f5f2'));
+  const splashTile = track(tileTexture(splashImg, l.tileW || 300, l.tileH || 300, splashImg ? l.splashRepeat : 0, '#e6ecef', '#f5f5f2', { color: l.splashTint, pct: l.splashTintPct }));
   const floorTile = track(tileTexture(floorImg, l.floorTileW || 600, l.floorTileH || 600, 0, '#cfd3d6', '#b9bdc0'));
 
   // A box placed relative to a wall: `a` runs along the wall, `d` comes out into the room, `h` is height.

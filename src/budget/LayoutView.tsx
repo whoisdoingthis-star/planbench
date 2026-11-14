@@ -43,6 +43,17 @@ export function LayoutView({ project: p, changed }: Props) {
             ))}
           </div>
           <Kitchen3D project={p} layout={l} option={shown} />
+          <div class="fields">
+            <label>Wall tile shade
+              <span class="swatch-row">
+                <input type="color" aria-label="Wall tile shade" value={l.splashTint} onInput={(e) => { l.splashTint = e.currentTarget.value; changed(); }} />
+              </span>
+            </label>
+            <label class="grow">How strongly to shade the wall tiles
+              <input type="range" min="0" max="80" step="5" aria-label="How strongly to shade the wall tiles" value={l.splashTintPct} onInput={(e) => { l.splashTintPct = Number(e.currentTarget.value); changed(); }} />
+            </label>
+          </div>
+          <p class="muted">Photos rarely match a tile exactly. Use these to nudge the wall tiles lighter, warmer or cooler until they look like the real thing.</p>
         </section>
       )}
       <section class="card">

@@ -67,6 +67,9 @@ export interface Layout {
   /** A close-up photo of the benchtop surface, and the real width in millimetres of the patch it shows. */
   benchPhoto?: string;
   benchRepeat: number;
+  /** A colour to wash over the wall tiles in the 3D view, and how strongly (0 to 100), to match how they look in real life. */
+  splashTint: string;
+  splashTintPct: number;
 }
 
 export const seg = (kind: SegKind, w: number, label = ''): Segment => ({ id: newId(), kind, w, label });
@@ -81,7 +84,7 @@ export function defaultLayout(): Layout {
     }],
     options: [{ id: newId(), name: 'Standard', splash: 600, upperH: 720 }],
     chosen: null,
-    floorTileW: 600, floorTileH: 600, splashRepeat: 0, benchRepeat: 0,
+    floorTileW: 600, floorTileH: 600, splashRepeat: 0, benchRepeat: 0, splashTint: '#f6f0e3', splashTintPct: 0,
   };
 }
 
@@ -166,6 +169,8 @@ export function normaliseLayout(raw: unknown): Layout | undefined {
     ...(s(r.splashPhoto) ? { splashPhoto: s(r.splashPhoto) } : {}),
     ...(s(r.floorPhoto) ? { floorPhoto: s(r.floorPhoto) } : {}),
     benchRepeat: n(r.benchRepeat, 0),
+    splashTint: /^#[0-9a-fA-F]{6}$/.test(s(r.splashTint)) ? s(r.splashTint) : '#f6f0e3',
+    splashTintPct: Math.min(100, n(r.splashTintPct, 0)),
     ...(s(r.benchPhoto) ? { benchPhoto: s(r.benchPhoto) } : {}),
   };
 }

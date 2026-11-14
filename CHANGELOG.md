@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Layout: the 3D benchtop can show a photo of the real surface.
 - Layout: a 3D view of the kitchen (all walls, window, appliances, tiles from photos), following the current choices.
 - Layout: walls can be placed in the room, have a window, and include a sink cupboard.
 - Private links: open a project stored on the site in encrypted form, using a key carried in the link.

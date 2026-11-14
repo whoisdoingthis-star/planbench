@@ -40,13 +40,14 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
     if (!el) return;
     void (async () => {
       try {
-        const [{ mountKitchen }, splash, floor] = await Promise.all([
+        const [{ mountKitchen }, splash, floor, bench] = await Promise.all([
           import('./scene3d'),
           layout.splashPhoto ? photoUrl(layout.splashPhoto) : Promise.resolve(null),
           layout.floorPhoto ? photoUrl(layout.floorPhoto) : Promise.resolve(null),
+          layout.benchPhoto ? photoUrl(layout.benchPhoto) : Promise.resolve(null),
         ]);
         if (cancelled) return;
-        const next = await mountKitchen(el, layout, option, finish, { splash, floor }, cam.current);
+        const next = await mountKitchen(el, layout, option, finish, { splash, floor, bench }, cam.current);
         if (cancelled) { next.dispose(); return; }
         mounted.current?.dispose();
         mounted.current = next;

@@ -64,6 +64,9 @@ export interface Layout {
   splashRepeat: number;
   /** A photo of one whole floor tile. */
   floorPhoto?: string;
+  /** A close-up photo of the benchtop surface, and roughly how wide a patch it shows in real life. */
+  benchPhoto?: string;
+  benchRepeat: number;
 }
 
 export const seg = (kind: SegKind, w: number, label = ''): Segment => ({ id: newId(), kind, w, label });
@@ -78,7 +81,7 @@ export function defaultLayout(): Layout {
     }],
     options: [{ id: newId(), name: 'Standard', splash: 600, upperH: 720 }],
     chosen: null,
-    floorTileW: 600, floorTileH: 600, splashRepeat: 0,
+    floorTileW: 600, floorTileH: 600, splashRepeat: 0, benchRepeat: 0,
   };
 }
 
@@ -162,5 +165,7 @@ export function normaliseLayout(raw: unknown): Layout | undefined {
     floorTileW: n(r.floorTileW, 600), floorTileH: n(r.floorTileH, 600), splashRepeat: n(r.splashRepeat, 0),
     ...(s(r.splashPhoto) ? { splashPhoto: s(r.splashPhoto) } : {}),
     ...(s(r.floorPhoto) ? { floorPhoto: s(r.floorPhoto) } : {}),
+    benchRepeat: n(r.benchRepeat, 0),
+    ...(s(r.benchPhoto) ? { benchPhoto: s(r.benchPhoto) } : {}),
   };
 }

@@ -68,6 +68,7 @@ function photoIds(p: Project): string[] {
   for (const s of p.sections) for (const i of s.items) for (const o of i.options) if (o.photoId) ids.push(o.photoId);
   if (p.layout?.splashPhoto) ids.push(p.layout.splashPhoto);
   if (p.layout?.floorPhoto) ids.push(p.layout.floorPhoto);
+  if (p.layout?.benchPhoto) ids.push(p.layout.benchPhoto);
   return [...new Set(ids)];
 }
 

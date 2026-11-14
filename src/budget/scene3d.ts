@@ -65,7 +65,7 @@ export async function mountKitchen(
   l: Layout,
   o: HeightOption,
   finish: Finish,
-  photos: { splash: string | null; floor: string | null },
+  photos: { splash: string | null; floor: string | null; bench?: string | null },
   keep?: CameraState,
 ): Promise<Mounted> {
   const f = optionFacts(l, o);
@@ -93,6 +93,9 @@ export async function mountKitchen(
 
   const splashImg = photos.splash ? await loadImage(photos.splash) : null;
   const floorImg = photos.floor ? await loadImage(photos.floor) : null;
+  const benchImg = photos.bench && l.benchRepeat > 0 ? await loadImage(photos.bench) : null;
+  const benchTex = benchImg ? track(new THREE.Texture(benchImg)) : null;
+  if (benchTex) { benchTex.wrapS = benchTex.wrapT = THREE.RepeatWrapping; benchTex.colorSpace = THREE.SRGBColorSpace; benchTex.anisotropy = 8; benchTex.needsUpdate = true; }
   const splashTile = track(tileTexture(splashImg, l.tileW || 300, l.tileH || 300, splashImg ? l.splashRepeat : 0, '#e6ecef', '#f5f5f2'));
   const floorTile = track(tileTexture(floorImg, l.floorTileW || 600, l.floorTileH || 600, 0, '#cfd3d6', '#b9bdc0'));
 
@@ -212,7 +215,20 @@ export async function mountKitchen(
       }
       a = b;
     }
-    for (const [r0, r1] of runs) box(r0, r1, 0, BASE_D + 25, bench - l.benchT, bench, M.bench, true);
+    for (const [r0, r1] of runs) {
+      if (!benchTex) { box(r0, r1, 0, BASE_D + 25, bench - l.benchT, bench, M.bench, true); continue; }
+      // The benchtop pattern, at its real size on the top and along the front edge.
+      const face = (across: number, up: number) => {
+        const t = track(benchTex.clone());
+        t.needsUpdate = true;
+        t.repeat.set(across / l.benchRepeat, up / l.benchRepeat);
+        return track(new THREE.MeshStandardMaterial({ map: t, roughness: 0.35 }));
+      };
+      const top = face(r1 - r0, BASE_D + 25);
+      const front = face(r1 - r0, l.benchT);
+      const end = face(BASE_D + 25, l.benchT);
+      box(r0, r1, 0, BASE_D + 25, bench - l.benchT, bench, [end, end, top, top, front, front], true);
+    }
     if (ovenAt !== null && w.hobW > 0) box(ovenAt - w.hobW / 2, ovenAt + w.hobW / 2, 55, 555, bench, bench + 8, M.black);
 
     // Splashback, tiled from the bench up, on every stretch of wall that has a bench in front of it.

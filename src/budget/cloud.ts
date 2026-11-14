@@ -258,6 +258,7 @@ export class Cloud {
     for (const s of this.project.sections) for (const i of s.items) for (const o of i.options) if (o.photoId) ids.push(o.photoId);
     if (this.project.layout?.splashPhoto) ids.push(this.project.layout.splashPhoto);
     if (this.project.layout?.floorPhoto) ids.push(this.project.layout.floorPhoto);
+    if (this.project.layout?.benchPhoto) ids.push(this.project.layout.benchPhoto);
     return ids;
   }
 

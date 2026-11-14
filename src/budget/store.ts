@@ -31,6 +31,13 @@ export function saveProject(p: Project): boolean {
 
 // ---------------------------------------------------------------- photos
 
+/** Set once the app has signed in, so photos are also sent to and fetched from the shared project. */
+export const photoCloud: {
+  queue?: (ids: string[]) => void;
+  download?: (id: string) => Promise<Blob | null>;
+  remove?: (id: string) => Promise<void>;
+} = {};
+
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 function db(): Promise<IDBDatabase> {
@@ -64,6 +71,7 @@ export async function storePhoto(id: string, file: Blob): Promise<void> {
   if (!blob) throw new Error('The photo could not be saved.');
   await tx('readwrite', (s) => s.put(blob, id));
   urls.delete(id);
+  photoCloud.queue?.([id]);
 }
 
 export async function photoBlob(id: string): Promise<Blob | undefined> {
@@ -72,6 +80,7 @@ export async function photoBlob(id: string): Promise<Blob | undefined> {
 
 export async function deletePhoto(id: string): Promise<void> {
   await tx('readwrite', (s) => s.delete(id));
+  void photoCloud.remove?.(id);
   const u = urls.get(id);
   if (u) URL.revokeObjectURL(u);
   urls.delete(id);
@@ -84,8 +93,14 @@ export async function photoUrl(id: string): Promise<string | null> {
   const have = urls.get(id);
   if (have) return have;
   try {
-    const blob = await photoBlob(id);
-    if (!blob) return null;
+    let blob = await photoBlob(id);
+    if (!blob) {
+      // Not on this device yet: it may have been added on another one.
+      const fetched = await photoCloud.download?.(id);
+      if (!fetched) return null;
+      blob = fetched;
+      await tx('readwrite', (s) => s.put(fetched, id));
+    }
     const u = URL.createObjectURL(blob);
     urls.set(id, u);
     return u;

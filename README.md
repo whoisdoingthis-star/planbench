@@ -23,6 +23,15 @@ every change to this repository.
 - Save your choices as a **version** ("Budget", "Dream") and compare versions side by side.
 - Download the budget as a spreadsheet.
 
+**Sharing**
+- Without signing in, everything is saved in the browser on that one device.
+- Sign in with an emailed link to share the project between devices and people.
+  Add another person by their email address under *Sharing*; only invited
+  addresses can sign in.
+- Changes appear on the other devices within a moment. If two people change
+  different things at the same time, both changes are kept. Changes made with
+  no connection are sent when the connection returns.
+
 **Photos**
 - Keep photos of the kitchen as it is now, and of ideas you like.
 - Open any photo in Plans to set its scale and measure on it.
@@ -49,12 +58,10 @@ Everything is measured in millimetres and shown in mm, m and m².
 
 ## What is planned
 
-1. Logging in, so two people can share one project across their devices.
-2. Using measurements from a plan as quantities (tile area, bench length).
-3. Seeing the future look: trying finishes on a photo or simple 3D view.
-4. More plan tools: walls, cabinets, 3D files, DWG, printing to scale.
+1. Using measurements from a plan as quantities (tile area, bench length).
+2. Seeing the future look: trying finishes on a photo or simple 3D view.
+3. More plan tools: walls, cabinets, 3D files, DWG, printing to scale.
 
-At the moment everything is saved **in the browser on one device only**.
 
 ## Running it on your own computer
 
@@ -75,6 +82,7 @@ npm run sample   # re-create the sample plan
 - `src/tools` - snapping and measuring
 - `src/ui` - the Plans screen: Simple and Pro modes, pointer/touch handling
 - `src/budget` - the Costs and Photos screens, the budget sums, and saving
+- `sql/schema.sql` - the shared database: tables and the rules for who may see what
 - `tests` - automatic tests
 
 ## Licence

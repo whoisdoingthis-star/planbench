@@ -5,7 +5,22 @@
 #nav .tabs button[aria-selected="true"] { background: #fff; color: #1f4e79; font-weight: 700; }
 
 .page { flex: 1; min-height: 0; overflow-y: auto; background: #eef1f4; color: #1b1f24; font-size: 18px; }
-.device-note { margin: 0; padding: 8px 16px; background: #fff4d6; border-bottom: 1px solid #ecd9a0; font-size: 15px; text-align: center; }
+.share-bar { padding: 8px 16px; background: #e6f0fa; border-bottom: 1px solid #c5d8ec; font-size: 16px; }
+.share-bar.warn { background: #fff4d6; border-color: #ecd9a0; }
+.share-bar form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.share-bar input { font: inherit; padding: 7px 10px; border: 1.5px solid #b9c2cc; border-radius: 9px; min-width: 220px; flex: 0 1 280px; background: #fff; color: #1b1f24; }
+.share-line { display: flex; gap: 10px; align-items: center; }
+.share-panel { max-width: 640px; padding: 4px 0 8px; }
+.share-panel p { margin: 8px 0; }
+.share-panel ul { margin: 0 0 10px; padding-left: 22px; }
+.share-panel li { margin: 4px 0; }
+.share-error { color: #b3261e; font-weight: 600; margin-top: 6px; }
+.share-note { margin-top: 6px; }
+.link { background: none; border: 0; padding: 0 4px; color: #1f4e79; text-decoration: underline; cursor: pointer; font: inherit; }
+.link.danger { color: #b3261e; margin-left: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #2b8a3e; flex: none; }
+.dot.saving, .dot.starting { background: #e8a30c; }
+.dot.offline, .dot.problem { background: #b3261e; }
 .budget { max-width: 980px; margin: 0 auto; padding: 16px 16px 60px; display: flex; flex-direction: column; gap: 16px; }
 .card { background: #fff; border: 1px solid #d5dae0; border-radius: 16px; padding: 18px; }
 .card h2 { margin: 0 0 4px; font-size: 22px; }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { photoUrl } from './store';
 
 /** Shows a stored photo. */
@@ -35,10 +35,18 @@ export function PhotoButton({ label, multiple, onFiles, class: cls }: { label: s
 
 /** A number box that accepts "12", "12.5" or "12,5" and ignores anything else until it makes sense. */
 export function NumberBox({ value, onValue, label, prefix, class: cls }: { value: number; onValue: (n: number) => void; label: string; prefix?: string; class?: string }) {
+  const ref = useRef<HTMLInputElement>(null);
+  // If the number changes from elsewhere (the other person edits it), show the new value,
+  // but never overwrite what is being typed right now.
+  useEffect(() => {
+    const el = ref.current;
+    if (el && document.activeElement !== el) el.value = value ? String(value) : '';
+  }, [value]);
   return (
     <span class={`numbox ${cls ?? ''}`}>
       {prefix && <span class="prefix">{prefix}</span>}
       <input
+        ref={ref}
         type="text"
         inputMode="decimal"
         aria-label={label}

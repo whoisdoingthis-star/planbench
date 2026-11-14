@@ -16,6 +16,7 @@
     "assets": "node scripts/copy-assets.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "dxf-parser": "^1.1.2",
     "pdfjs-dist": "^6.5.438",
     "preact": "^11.2.0"

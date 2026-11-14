@@ -85,6 +85,9 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
           <span class="muted" style="margin:0">Look at:</span>
           <button type="button" class="btn small" onClick={() => mounted.current?.view('room')}>The whole room</button>
           <button type="button" class="btn small" onClick={() => mounted.current?.view('kitchen')}>The kitchen</button>
+          {layout.walls.map((w) => (
+            <button key={w.id} type="button" class="btn small" onClick={() => mounted.current?.view(w.id)}>{w.name}</button>
+          ))}
         </div>
       )}
       <div class="row-actions">

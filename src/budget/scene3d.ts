@@ -24,7 +24,7 @@ export interface Mounted {
   /** The current picture, as a PNG address that can be saved. */
   picture(): string;
   /** Jump to a standard viewpoint. */
-  view(which: 'room' | 'kitchen'): void;
+  view(which: string): void;
   camera(): CameraState;
 }
 
@@ -294,12 +294,32 @@ export async function mountKitchen(
         at += s.w;
       }
       if (s0 !== null) stretches.push([s0, at]);
-      for (const [r0, r1] of stretches) {
+      // One tiled piece of wall. Every piece counts its tiles from the same corner, so the rows and joints line up.
+      const tiles = (a0: number, a1: number, h0: number, h1: number) => {
+        if (a1 - a0 < 1 || h1 - h0 < 1) return;
+        const tw = l.tileW || 300;
+        const thh = l.tileH || 300;
         const t = track(splashTile.clone());
         t.needsUpdate = true;
-        t.repeat.set((r1 - r0) / (l.tileW || 300), o.splash / (l.tileH || 300));
+        t.repeat.set((a1 - a0) / tw, (h1 - h0) / thh);
+        t.offset.set((a0 % tw) / tw, ((h0 - bench) % thh) / thh);
         const face = track(new THREE.MeshStandardMaterial({ map: t, roughness: 0.5 }));
-        box(r0, r1, 0, 9, bench, f.underside, [M.wall, M.wall, M.wall, M.wall, face, M.wall]);
+        box(a0, a1, 0, 9, h0, h1, [M.wall, M.wall, M.wall, M.wall, face, M.wall]);
+      };
+      const win = w.window;
+      for (const [r0, r1] of stretches) {
+        if (!win || win.from >= r1 || win.from + win.w <= r0 || win.sill >= f.underside) {
+          tiles(r0, r1, bench, f.underside);
+          continue;
+        }
+        // Tile up to the sill under the window, and full height either side of it. Never across the glass.
+        const w0 = Math.max(r0, win.from);
+        const w1 = Math.min(r1, win.from + win.w);
+        tiles(r0, w0, bench, f.underside);
+        tiles(w0, w1, bench, Math.min(f.underside, win.sill));
+        tiles(w1, r1, bench, f.underside);
+        // And above the window, if the tiles go higher than its top.
+        tiles(w0, w1, win.sill + win.h, f.underside);
       }
     }
 
@@ -541,7 +561,20 @@ export async function mountKitchen(
   const controls = new OrbitControls(camera, renderer.domElement);
   if (inward.length() < 0.01) inward.set(0, 1);
   inward.normalize();
-  const view = (which: 'room' | 'kitchen') => {
+  const view = (which: string) => {
+    const facing = l.walls.find((w) => w.id === which);
+    if (facing) {
+      // Standing back from the middle of one kitchen wall, looking straight at it.
+      const th = (facing.dir * Math.PI) / 180;
+      const mid = wallWidth(facing) / 2;
+      const px = (facing.x + Math.cos(th) * mid) * MM;
+      const pz = (facing.y + Math.sin(th) * mid) * MM;
+      const back = Math.max(2.4, mid * MM * 1.15);
+      camera.position.set(px - Math.sin(th) * back, 1.5, pz + Math.cos(th) * back);
+      controls.target.set(px, 1.25, pz);
+      controls.update();
+      return;
+    }
     const indoor = l.zones.filter((z) => z.floor !== 'deck');
     if (which === 'room' && indoor.length) {
       // High up over one corner, looking across the whole floor.

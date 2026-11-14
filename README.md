@@ -35,6 +35,9 @@ every change to this repository.
 - A **3D view** of the whole kitchen that you can turn and zoom, built from the
   wall lists. It uses the chosen door colour, handles and benchtop from the Costs
   screen, and photos of your tiles on the splashback and floor.
+- **The room from above**: floor areas, walls with windows and doors, the kitchen
+  runs, and furniture you can drag about, turn and resize. The 3D view shows the
+  same room, with buttons to look at the whole room or just the kitchen.
 - Draw a wall to scale: list the units along the floor and on the wall.
 - Compare height options side by side, such as splashback height and wall
   cabinet height. Each option shows whether tiles need cutting, how much space

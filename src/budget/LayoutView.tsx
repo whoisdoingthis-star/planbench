@@ -7,6 +7,7 @@ import {
 } from './layout';
 import { NumberBox } from './ui';
 import { Kitchen3D } from './Kitchen3D';
+import { PlanView } from './PlanView';
 
 interface Props {
   project: Project;
@@ -37,7 +38,7 @@ export function LayoutView({ project: p, changed }: Props) {
       {shown && (
         <section class="card">
           <div class="row-actions" style="margin-top:0">
-            <h2 style="margin:0">The kitchen in 3D</h2>
+            <h2 style="margin:0">{l.zones.length ? 'The room in 3D' : 'The kitchen in 3D'}</h2>
             {l.options.length > 1 && l.options.map((o) => (
               <button key={o.id} type="button" class={`btn small ${o === shown ? 'primary' : ''}`} onClick={() => setViewId(o.id)}>{o.name}</button>
             ))}
@@ -54,6 +55,12 @@ export function LayoutView({ project: p, changed }: Props) {
             </label>
           </div>
           <p class="muted">Photos rarely match a tile exactly. Use these to nudge the wall tiles lighter, warmer or cooler until they look like the real thing.</p>
+        </section>
+      )}
+      {l.zones.length > 0 && (
+        <section class="card">
+          <h2>The room from above</h2>
+          <PlanView layout={l} changed={changed} />
         </section>
       )}
       <section class="card">
@@ -202,8 +209,10 @@ function Elevation({ l, wall, o }: { l: Layout; wall: Wall; o: HeightOption }) {
       if (s.w > 500) seam(x + s.w / 2, lo, x + s.w / 2, l.tallH);
       seam(x, bench, x + s.w, bench);
     } else if (s.kind === 'fridge') {
-      rect(x + 10, 0, Math.min(1800, l.tallH), s.w - 20, '#aab1b8');
-      seam(x + 10, 650, x + s.w - 10, 650);
+      const fw = l.fridgeW > 0 ? Math.min(l.fridgeW, s.w) : s.w - 20;
+      const fh = l.fridgeH || 1790;
+      rect(x + (s.w - fw) / 2, 0, fh, fw, '#aab1b8');
+      seam(x + (s.w - fw) / 2, fh * 0.36, x + (s.w + fw) / 2, fh * 0.36);
     } else if (s.kind !== 'gap') {
       rect(x, 0, lo, s.w, '#b9c0c7');
       rect(x, hi, bench, s.w, '#e9e2d3');
@@ -229,11 +238,13 @@ function Elevation({ l, wall, o }: { l: Layout; wall: Wall; o: HeightOption }) {
   x = 0;
   for (const s of wall.upper) {
     if (s.kind !== 'gap') {
-      rect(x, f.underside, f.top, s.w, s.kind === 'filler' ? '#f1f1ee' : s.kind === 'open' ? '#f7f3ea' : '#ffffff');
-      if (s.kind === 'open') seam(x, f.underside + o.upperH / 2, x + s.w, f.underside + o.upperH / 2);
-      else if ((s.kind === 'cabinet' || s.kind === 'hood') && s.w > 500) seam(x + s.w / 2, f.underside, x + s.w / 2, f.top);
-      if (s.kind === 'hood') rect(x + 30, f.underside - 18, f.underside, s.w - 60, '#8a9199');
-      width(x, s.w, f.underside + o.upperH / 2 - 20);
+      const u0 = s.lo ?? f.underside;
+      const u1 = s.hi ?? f.top;
+      rect(x, u0, u1, s.w, s.kind === 'filler' ? '#f1f1ee' : s.kind === 'open' ? '#f7f3ea' : '#ffffff');
+      if (s.kind === 'open' && u1 - u0 > 500) seam(x, (u0 + u1) / 2, x + s.w, (u0 + u1) / 2);
+      else if ((s.kind === 'cabinet' || s.kind === 'hood') && s.w > 500) seam(x + s.w / 2, u0, x + s.w / 2, u1);
+      if (s.kind === 'hood') rect(x + 30, u0 - 18, u0, s.w - 60, '#8a9199');
+      width(x, s.w, (u0 + u1) / 2 - 20);
     }
     x += s.w;
   }

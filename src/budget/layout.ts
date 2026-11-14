@@ -15,6 +15,9 @@ export interface Segment {
   /** Width in millimetres. */
   w: number;
   label: string;
+  /** For a wall unit that does not sit with the others (such as a box over the fridge): its bottom and top, from the floor. */
+  lo?: number;
+  hi?: number;
 }
 
 export interface Wall {
@@ -33,6 +36,61 @@ export interface Wall {
   dir: number;
   /** A window in this wall: distance from the left end, width, height of the sill from the floor, and height. */
   window?: { from: number; w: number; sill: number; h: number };
+}
+
+/** A patch of floor: the kitchen and dining tiles, the lounge carpet, the deck. Seen from above. */
+export interface Zone {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  d: number;
+  floor: 'tile' | 'carpet' | 'deck' | 'plain';
+}
+
+export interface Opening {
+  kind: 'window' | 'slider' | 'door';
+  /** Distance along the wall from its first end, width, height of the sill from the floor, and height. */
+  from: number;
+  w: number;
+  sill: number;
+  h: number;
+}
+
+/** A wall of the room, seen from above, from one end to the other. */
+export interface RoomWall {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  /** Outside walls are hidden when you look in from behind them. */
+  outer: boolean;
+  openings: Opening[];
+}
+
+export type ItemKind = 'table' | 'rug' | 'sofa' | 'box';
+export const ITEM_NAMES: Record<ItemKind, string> = { table: 'Table', rug: 'Rug', sofa: 'Sofa', box: 'Other furniture' };
+
+/** A piece of furniture. x and y are its centre, seen from above. */
+export interface Furniture {
+  id: string;
+  name: string;
+  kind: ItemKind;
+  x: number;
+  y: number;
+  /** Length, width and height. */
+  w: number;
+  d: number;
+  h: number;
+  /** Turned by this many degrees. */
+  rot: number;
+  color: string;
+  /** For tables: how many chairs to draw around it. */
+  chairs: number;
+  /** How far off the floor it sits, for things fixed to a wall such as a television. */
+  lift: number;
 }
 
 export interface HeightOption {
@@ -70,6 +128,21 @@ export interface Layout {
   /** A colour to wash over the wall tiles in the 3D view, and how strongly (0 to 100), to match how they look in real life. */
   splashTint: string;
   splashTintPct: number;
+  /** The rest of the room: floors, walls and furniture. Empty when only the kitchen runs are drawn. */
+  zones: Zone[];
+  roomWalls: RoomWall[];
+  items: Furniture[];
+  /** The fridge's real size, so it can be drawn standing proud of the cabinets. */
+  fridgeW: number;
+  fridgeD: number;
+  fridgeH: number;
+  /** Real sizes and finishes of the other appliances, so they are drawn as the ones actually bought. */
+  dishColor: string;
+  ovenH: number;
+  hobD: number;
+  hobZones: number;
+  hoodW: number;
+  hoodD: number;
 }
 
 export const seg = (kind: SegKind, w: number, label = ''): Segment => ({ id: newId(), kind, w, label });
@@ -85,6 +158,8 @@ export function defaultLayout(): Layout {
     options: [{ id: newId(), name: 'Standard', splash: 600, upperH: 720 }],
     chosen: null,
     floorTileW: 600, floorTileH: 600, splashRepeat: 0, benchRepeat: 0, splashTint: '#f6f0e3', splashTintPct: 0,
+    zones: [], roomWalls: [], items: [], fridgeW: 0, fridgeD: 690, fridgeH: 1790,
+    dishColor: '#aeb4ba', ovenH: 598, hobD: 510, hobZones: 4, hoodW: 0, hoodD: 290,
   };
 }
 
@@ -148,7 +223,12 @@ export function normaliseLayout(raw: unknown): Layout | undefined {
   const r = raw as Record<string, unknown>;
   const d = defaultLayout();
   const segs = (v: unknown): Segment[] =>
-    arr(v).map((x) => ({ id: s(x.id) || newId(), kind: (s(x.kind) in KIND_NAMES ? s(x.kind) : 'cabinet') as SegKind, w: n(x.w, 600), label: s(x.label) }));
+    arr(v).map((x) => ({
+      id: s(x.id) || newId(), kind: (s(x.kind) in KIND_NAMES ? s(x.kind) : 'cabinet') as SegKind, w: n(x.w, 600), label: s(x.label),
+      ...(typeof x.lo === 'number' && typeof x.hi === 'number' && x.hi > x.lo ? { lo: n(x.lo, 0), hi: n(x.hi, 0) } : {}),
+    }));
+  const num = (v: unknown, d: number): number => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+  const pick = <T extends string>(v: unknown, allowed: readonly T[], d: T): T => (allowed.includes(v as T) ? (v as T) : d);
   const options = arr(r.options).map((o) => ({ id: s(o.id) || newId(), name: s(o.name, 'Option'), splash: n(o.splash, 600), upperH: n(o.upperH, 720) }));
   return {
     ceiling: n(r.ceiling, d.ceiling), toeKick: n(r.toeKick, d.toeKick), baseH: n(r.baseH, d.baseH), benchT: n(r.benchT, d.benchT),
@@ -171,6 +251,19 @@ export function normaliseLayout(raw: unknown): Layout | undefined {
     benchRepeat: n(r.benchRepeat, 0),
     splashTint: /^#[0-9a-fA-F]{6}$/.test(s(r.splashTint)) ? s(r.splashTint) : '#f6f0e3',
     splashTintPct: Math.min(100, n(r.splashTintPct, 0)),
+    zones: arr(r.zones).map((z) => ({ id: s(z.id) || newId(), name: s(z.name, 'Area'), x: num(z.x, 0), y: num(z.y, 0), w: n(z.w, 3000), d: n(z.d, 3000), floor: pick(z.floor, ['tile', 'carpet', 'deck', 'plain'] as const, 'plain') })),
+    roomWalls: arr(r.roomWalls).map((w) => ({
+      id: s(w.id) || newId(), x1: num(w.x1, 0), y1: num(w.y1, 0), x2: num(w.x2, 0), y2: num(w.y2, 0), outer: w.outer !== false,
+      openings: arr(w.openings).map((o) => ({ kind: pick(o.kind, ['window', 'slider', 'door'] as const, 'window'), from: n(o.from, 0), w: n(o.w, 900), sill: n(o.sill, 0), h: n(o.h, 2000) })),
+    })),
+    items: arr(r.items).map((i) => ({
+      id: s(i.id) || newId(), name: s(i.name, 'Furniture'), kind: pick(i.kind, ['table', 'rug', 'sofa', 'box'] as const, 'box'),
+      x: num(i.x, 0), y: num(i.y, 0), w: n(i.w, 1000), d: n(i.d, 600), h: n(i.h, 700), rot: num(i.rot, 0),
+      color: /^#[0-9a-fA-F]{6}$/.test(s(i.color)) ? s(i.color) : '#9a6a3c', chairs: Math.min(12, n(i.chairs, 0)), lift: n(i.lift, 0),
+    })),
+    fridgeW: n(r.fridgeW, 0), fridgeD: n(r.fridgeD, 690), fridgeH: n(r.fridgeH, 1790),
+    dishColor: /^#[0-9a-fA-F]{6}$/.test(s(r.dishColor)) ? s(r.dishColor) : '#aeb4ba',
+    ovenH: n(r.ovenH, 598), hobD: n(r.hobD, 510), hobZones: Math.min(6, n(r.hobZones, 4)), hoodW: n(r.hoodW, 0), hoodD: n(r.hoodD, 290),
     ...(s(r.benchPhoto) ? { benchPhoto: s(r.benchPhoto) } : {}),
   };
 }

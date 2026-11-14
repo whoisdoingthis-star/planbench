@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { type HeightOption, type Layout, type Segment, type Wall, benchTop, optionFacts, wallWidth } from './layout';
+import { type Furniture, type HeightOption, type Layout, type Segment, type Wall, benchTop, optionFacts, wallWidth } from './layout';
 
 export interface Finish {
   door: string;
@@ -17,6 +17,8 @@ export interface CameraState {
 
 export interface Mounted {
   dispose(): void;
+  /** Jump to a standard viewpoint. */
+  view(which: 'room' | 'kitchen'): void;
   camera(): CameraState;
 }
 
@@ -94,6 +96,8 @@ export async function mountKitchen(
     frame: mat('#fbfbf9', 0.6),
     glass: track(new THREE.MeshStandardMaterial({ color: '#bfe0f2', emissive: '#9fd0ee', emissiveIntensity: 0.55, roughness: 0.1 })),
     filler: mat(finish.door, 0.6),
+    dish: mat(l.dishColor, 0.45, l.dishColor.toLowerCase() === '#aeb4ba' ? 0.7 : 0.1),
+    ring: mat('#5d6268', 0.4),
     shelf: mat('#e9e3d6', 0.7),
   };
   const edgeMat = track(new THREE.LineBasicMaterial({ color: '#7d858d' }));
@@ -107,24 +111,27 @@ export async function mountKitchen(
   const splashTile = track(tileTexture(splashImg, l.tileW || 300, l.tileH || 300, splashImg ? l.splashRepeat : 0, '#e6ecef', '#f5f5f2', { color: l.splashTint, pct: l.splashTintPct }));
   const floorTile = track(tileTexture(floorImg, l.floorTileW || 600, l.floorTileH || 600, 0, '#cfd3d6', '#b9bdc0'));
 
-  // A box placed relative to a wall: `a` runs along the wall, `d` comes out into the room, `h` is height.
-  const boxOn = (w: Wall) => {
-    const th = (w.dir * Math.PI) / 180;
+  // A box placed relative to a starting point and direction: `a` runs along it, `d` is to its left
+  // as you travel (into the room for a wall), `h` is height.
+  const frame = (ox: number, oy: number, th: number, parent: THREE.Object3D = scene) => {
     const dx = Math.cos(th);
     const dz = Math.sin(th);
     return (a0: number, a1: number, d0: number, d1: number, h0: number, h1: number, material: THREE.Material | THREE.Material[], edges = false) => {
-      if (a1 - a0 <= 0 || h1 - h0 <= 0) return null;
+      if (a1 - a0 <= 0 || h1 - h0 <= 0 || d1 - d0 <= 0) return null;
       const geo = track(new THREE.BoxGeometry((a1 - a0) * MM, (h1 - h0) * MM, (d1 - d0) * MM));
       const m = new THREE.Mesh(geo, material);
       const a = (a0 + a1) / 2;
       const d = (d0 + d1) / 2;
-      m.position.set((w.x + dx * a - dz * d) * MM, ((h0 + h1) / 2) * MM, (w.y + dz * a + dx * d) * MM);
+      m.position.set((ox + dx * a - dz * d) * MM, ((h0 + h1) / 2) * MM, (oy + dz * a + dx * d) * MM);
       m.rotation.y = -th;
       if (edges) m.add(new THREE.LineSegments(track(new THREE.EdgesGeometry(geo)), edgeMat));
-      scene.add(m);
+      parent.add(m);
       return m;
     };
   };
+  const boxOn = (w: Wall) => frame(w.x, w.y, (w.dir * Math.PI) / 180);
+  // When the whole room is drawn, its own walls replace the plain sheet behind each kitchen run.
+  const fullRoom = l.roomWalls.length > 0;
 
   const bounds = { minX: Infinity, minZ: Infinity, maxX: -Infinity, maxZ: -Infinity };
   const inward = new THREE.Vector2();
@@ -143,14 +150,14 @@ export async function mountKitchen(
     }
 
     // The wall itself, and a window if it has one.
-    {
+    if (!fullRoom) {
       // A one-sided sheet: seen from inside it is the wall, from outside it vanishes so you can look in.
       const sheet = new THREE.Mesh(track(new THREE.PlaneGeometry(len * MM, l.ceiling * MM)), M.wall);
       sheet.position.set((w.x + Math.cos(th) * (len / 2)) * MM, (l.ceiling / 2) * MM, (w.y + Math.sin(th) * (len / 2)) * MM);
       sheet.rotation.y = -th;
       scene.add(sheet);
     }
-    if (w.window) {
+    if (w.window && !fullRoom) {
       const v = w.window;
       box(v.from, v.from + v.w, -92, 16, v.sill, v.sill + v.h, M.frame);
       box(v.from + 45, v.from + v.w - 45, -93, 18, v.sill + 45, v.sill + v.h - 45, M.glass);
@@ -186,19 +193,29 @@ export async function mountKitchen(
         doors(a, s.w, lo, bench - l.benchT, BASE_D, false);
         doors(a, s.w, bench - l.benchT + 3, l.tallH, BASE_D, true);
       } else if (s.kind === 'fridge') {
-        box(a + 12, b - 12, 0, 690, 0, 640, M.steel, true);
-        box(a + 12, a + s.w / 2 - 2, 0, 690, 648, 1790, M.steel, true);
-        box(a + s.w / 2 + 2, b - 12, 0, 690, 648, 1790, M.steel, true);
+        // Drawn at its real size, centred in its space, so you can see how far it stands out.
+        const fw = l.fridgeW > 0 ? Math.min(l.fridgeW, s.w) : s.w - 24;
+        const f0 = a + (s.w - fw) / 2;
+        const fd = l.fridgeD || 690;
+        const fh = l.fridgeH || 1790;
+        box(f0, f0 + fw, 0, fd, 0, fh * 0.36, M.steel, true);
+        box(f0, f0 + fw / 2 - 2, 0, fd, fh * 0.36 + 6, fh, M.steel, true);
+        box(f0 + fw / 2 + 2, f0 + fw, 0, fd, fh * 0.36 + 6, fh, M.steel, true);
       } else if (s.kind !== 'gap') {
         box(a, b, 40, 540, 0, lo, M.toe);
         if (s.kind === 'oven') {
+          // The oven at its real height, hung just under the bench, with a steel control strip and handle.
           box(a, b, 0, BASE_D, lo, hi, M.door, true);
-          box(a + 14, b - 14, BASE_D, BASE_D + 8, lo + 60, hi - 12, M.black);
-          box(a + 40, b - 40, BASE_D + 8, BASE_D + 40, hi - 110, hi - 96, M.handle);
+          const top = hi - 8;
+          const bottom = Math.max(lo + 10, top - (l.ovenH || 598));
+          box(a + 2, b - 2, BASE_D, BASE_D + 10, bottom, top - 95, M.black);
+          box(a + 2, b - 2, BASE_D, BASE_D + 10, top - 95, top, M.steel, true);
+          box(a + 45, b - 45, BASE_D + 10, BASE_D + 45, top - 135, top - 121, M.handle);
           ovenAt = (a + b) / 2;
         } else if (s.kind === 'dishwasher') {
-          box(a + 3, b - 3, 0, BASE_D, 0 + 60, hi, M.steel, true);
-          box(a + 60, b - 60, BASE_D, BASE_D + 35, hi - 90, hi - 76, M.handle);
+          box(a + 2, b - 2, 0, BASE_D - 15, 60, hi, M.dish, true);
+          box(a + 2, b - 2, 0, BASE_D - 5, hi - 110, hi, M.dish, true);
+          box(a + 70, b - 70, BASE_D - 5, BASE_D + 30, hi - 150, hi - 136, M.handle);
         } else if (s.kind === 'drawers') {
           let h = lo;
           for (const part of [0.42, 0.34, 0.24]) {
@@ -238,7 +255,24 @@ export async function mountKitchen(
       const end = face(BASE_D + 25, l.benchT);
       box(r0, r1, 0, BASE_D + 25, bench - l.benchT, bench, [end, end, top, top, front, front], true);
     }
-    if (ovenAt !== null && w.hobW > 0) box(ovenAt - w.hobW / 2, ovenAt + w.hobW / 2, 55, 555, bench, bench + 8, M.black);
+    if (ovenAt !== null && w.hobW > 0) {
+      // The cooktop at its real size, with a ring for each cooking zone.
+      const hd = l.hobD || 510;
+      const d0 = Math.max(30, (BASE_D + 25 - hd) / 2);
+      box(ovenAt - w.hobW / 2, ovenAt + w.hobW / 2, d0, d0 + hd, bench, bench + 6, M.black);
+      const zones: [number, number, number][] = l.hobZones >= 5
+        ? [[-0.34, 0.3, 95], [-0.34, 0.72, 80], [0, 0.5, 130], [0.34, 0.3, 80], [0.34, 0.72, 95]]
+        : [[-0.25, 0.3, 100], [-0.25, 0.72, 80], [0.25, 0.3, 80], [0.25, 0.72, 100]];
+      const th = (w.dir * Math.PI) / 180;
+      for (const [fx, fy, r] of zones.slice(0, l.hobZones || 4)) {
+        const al = ovenAt + fx * w.hobW;
+        const dp = d0 + fy * hd;
+        const ring = new THREE.Mesh(track(new THREE.RingGeometry((r - 5) * MM, r * MM, 40)), M.ring);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set((w.x + Math.cos(th) * al - Math.sin(th) * dp) * MM, (bench + 7) * MM, (w.y + Math.sin(th) * al + Math.cos(th) * dp) * MM);
+        scene.add(ring);
+      }
+    }
 
     // Splashback, tiled from the bench up, on every stretch of wall that has a bench in front of it.
     if (o.splash > 0) {
@@ -265,36 +299,159 @@ export async function mountKitchen(
     a = 0;
     for (const s of w.upper) {
       const b = a + s.w;
-      if (s.kind === 'filler') box(a, b, 0, UPPER_D, f.underside, f.top, M.filler, true);
+      const u0 = s.lo ?? f.underside;
+      const u1 = s.hi ?? f.top;
+      if (s.kind === 'filler') box(a, b, 0, UPPER_D, u0, u1, M.filler, true);
       else if (s.kind === 'open') {
-        box(a, b, 0, UPPER_D, f.underside, f.underside + 18, M.shelf, true);
-        box(a, b, 0, UPPER_D, (f.underside + f.top) / 2 - 9, (f.underside + f.top) / 2 + 9, M.shelf, true);
-        box(a, b, 0, UPPER_D, f.top - 18, f.top, M.shelf, true);
+        // An open box: back, sides, top and bottom, with a middle shelf if it is tall enough.
+        box(a, b, 0, 16, u0, u1, M.shelf, true);
+        box(a, a + 16, 0, UPPER_D, u0, u1, M.door, true);
+        box(b - 16, b, 0, UPPER_D, u0, u1, M.door, true);
+        box(a, b, 0, UPPER_D, u0, u0 + 16, M.door, true);
+        box(a, b, 0, UPPER_D, u1 - 16, u1, M.door, true);
+        if (u1 - u0 > 500) box(a + 16, b - 16, 0, UPPER_D - 10, (u0 + u1) / 2 - 8, (u0 + u1) / 2 + 8, M.shelf, true);
       } else if (s.kind !== 'gap') {
-        doors(a, s.w, f.underside, f.top, UPPER_D, true);
-        if (s.kind === 'hood') box(a + 25, b - 25, 20, UPPER_D + 60, f.underside - 28, f.underside, M.steel);
+        doors(a, s.w, u0, u1, UPPER_D, true);
+        if (s.kind === 'hood') {
+          // An undermount rangehood sits up inside the cabinet; only its steel underside shows.
+          const hw = l.hoodW > 0 ? Math.min(l.hoodW, s.w) : s.w - 50;
+          const c = (a + b) / 2;
+          box(c - hw / 2, c + hw / 2, 30, 30 + (l.hoodD || 290), u0 - 10, u0, M.steel, true);
+        }
       }
       a = b;
     }
   }
 
-  // Floor: stretch a little past the units, but never out through a wall.
-  const margin = 1500;
-  let { minX, maxX, minZ, maxZ } = bounds;
-  minX -= margin; maxX += margin; minZ -= margin; maxZ += margin;
-  for (const w of l.walls) {
-    if (w.dir === 0) minZ = Math.max(minZ, w.y);
-    else if (w.dir === 90) maxX = Math.min(maxX, w.x);
-    else if (w.dir === 180) maxZ = Math.min(maxZ, w.y);
-    else minX = Math.max(minX, w.x);
+  // The extent of the kitchen runs alone, before the rest of the room is added.
+  const kb = { ...bounds };
+  const tw = l.floorTileW || 600;
+  const tl = l.floorTileH || 600;
+  const floorPlane = (x: number, y: number, w: number, d: number, material: THREE.Material, lift = 0) => {
+    const m = new THREE.Mesh(track(new THREE.PlaneGeometry(w * MM, d * MM)), material);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set((x + w / 2) * MM, lift * MM, (y + d / 2) * MM);
+    scene.add(m);
+  };
+  if (l.zones.length) {
+    for (const z of l.zones) {
+      if (z.floor === 'tile') {
+        // Tiles line up across neighbouring areas because every area counts from the same corner of the room.
+        const t = track(floorTile.clone());
+        t.needsUpdate = true;
+        t.repeat.set(z.w / tw, z.d / tl);
+        t.offset.set((((z.x % tw) + tw) % tw) / tw, 0);
+        floorPlane(z.x, z.y, z.w, z.d, track(new THREE.MeshStandardMaterial({ map: t, roughness: 0.35 })));
+      } else {
+        const colour = z.floor === 'carpet' ? '#b7ab97' : z.floor === 'deck' ? '#c6cace' : '#d9d9d6';
+        floorPlane(z.x, z.y, z.w, z.d, mat(colour, z.floor === 'carpet' ? 1 : 0.6));
+      }
+      bounds.minX = Math.min(bounds.minX, z.x); bounds.maxX = Math.max(bounds.maxX, z.x + z.w);
+      bounds.minZ = Math.min(bounds.minZ, z.y); bounds.maxZ = Math.max(bounds.maxZ, z.y + z.d);
+    }
+  } else {
+    // Only the kitchen is drawn: stretch a floor a little past the units, but never out through a wall.
+    const margin = 1500;
+    let { minX, maxX, minZ, maxZ } = bounds;
+    minX -= margin; maxX += margin; minZ -= margin; maxZ += margin;
+    for (const w of l.walls) {
+      if (w.dir === 0) minZ = Math.max(minZ, w.y);
+      else if (w.dir === 90) maxX = Math.min(maxX, w.x);
+      else if (w.dir === 180) maxZ = Math.min(maxZ, w.y);
+      else minX = Math.max(minX, w.x);
+    }
+    floorTile.repeat.set((maxX - minX) / tw, (maxZ - minZ) / tl);
+    floorPlane(minX, minZ, maxX - minX, maxZ - minZ, track(new THREE.MeshStandardMaterial({ map: floorTile, roughness: 0.35 })));
   }
-  const fw = maxX - minX;
-  const fd = maxZ - minZ;
-  floorTile.repeat.set(fw / (l.floorTileW || 600), fd / (l.floorTileH || 600));
-  const floor = new THREE.Mesh(track(new THREE.PlaneGeometry(fw * MM, fd * MM)), track(new THREE.MeshStandardMaterial({ map: floorTile, roughness: 0.35 })));
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.set(((minX + maxX) / 2) * MM, 0, ((minZ + maxZ) / 2) * MM);
-  scene.add(floor);
+
+  // The walls of the room, with their windows and doors.
+  const glass = track(new THREE.MeshStandardMaterial({ color: '#cfe8f5', transparent: true, opacity: 0.22, roughness: 0.05 }));
+  const hideable: { group: THREE.Group; px: number; pz: number; nx: number; nz: number }[] = [];
+  if (fullRoom) {
+    const inside = l.zones.filter((z) => z.floor !== 'deck');
+    const mx = inside.reduce((n, z) => n + z.x + z.w / 2, 0) / Math.max(1, inside.length);
+    const mz = inside.reduce((n, z) => n + z.y + z.d / 2, 0) / Math.max(1, inside.length);
+    for (const rw of l.roomWalls) {
+      let { x1, y1, x2, y2 } = rw;
+      const len = Math.hypot(x2 - x1, y2 - y1);
+      if (len < 1) continue;
+      let openings = rw.openings;
+      // Face the wall's "into the room" side towards the middle of the house.
+      let th = Math.atan2(y2 - y1, x2 - x1);
+      const towards = -Math.sin(th) * (mx - x1) + Math.cos(th) * (mz - y1);
+      if (towards < 0) {
+        [x1, y1, x2, y2] = [x2, y2, x1, y1];
+        th = Math.atan2(y2 - y1, x2 - x1);
+        openings = openings.map((o) => ({ ...o, from: len - o.from - o.w }));
+      }
+      const group = new THREE.Group();
+      scene.add(group);
+      const box = frame(x1, y1, th, group);
+      const d0 = rw.outer ? -100 : -45;
+      const d1 = rw.outer ? 0 : 45;
+      let at = 0;
+      for (const o of [...openings].sort((p, q) => p.from - q.from)) {
+        box(at, o.from, d0, d1, 0, l.ceiling, M.wall);
+        box(o.from, o.from + o.w, d0, d1, 0, o.sill, M.wall);
+        box(o.from, o.from + o.w, d0, d1, o.sill + o.h, l.ceiling, M.wall);
+        if (o.kind !== 'door') {
+          const mid = (d0 + d1) / 2;
+          box(o.from, o.from + o.w, mid - 4, mid + 4, o.sill, o.sill + o.h, glass);
+          box(o.from + o.w / 2 - 18, o.from + o.w / 2 + 18, mid - 20, mid + 20, o.sill, o.sill + o.h, M.frame);
+          box(o.from, o.from + o.w, mid - 20, mid + 20, o.sill + o.h - 36, o.sill + o.h, M.frame);
+          if (o.sill > 0) box(o.from, o.from + o.w, mid - 20, mid + 20, o.sill, o.sill + 36, M.frame);
+        }
+        at = o.from + o.w;
+      }
+      box(at, len, d0, d1, 0, l.ceiling, M.wall);
+      if (rw.outer) hideable.push({ group, px: x1 * MM, pz: y1 * MM, nx: -Math.sin(th), nz: Math.cos(th) });
+    }
+  }
+
+  for (const it of l.items) addFurniture(it);
+
+  function addFurniture(it: Furniture): void {
+    const box = frame(it.x, it.y, (it.rot * Math.PI) / 180);
+    const main = mat(it.color, 0.6);
+    const dark = mat(new THREE.Color(it.color).multiplyScalar(0.7).getStyle(), 0.7);
+    const hw = it.w / 2;
+    const hd = it.d / 2;
+    if (it.kind === 'rug') {
+      box(-hw, hw, -hd, hd, 2, 14, main);
+      box(-hw + 120, hw - 120, -hd + 120, hd - 120, 14, 16, dark);
+    } else if (it.kind === 'sofa') {
+      box(-hw, hw, -hd, hd, 0, it.h * 0.48, main, true);
+      box(-hw, hw, hd - 220, hd, it.h * 0.48, it.h, main, true);
+      box(-hw, -hw + 180, -hd, hd - 220, it.h * 0.48, it.h * 0.72, main, true);
+      box(hw - 180, hw, -hd, hd - 220, it.h * 0.48, it.h * 0.72, main, true);
+    } else if (it.kind === 'table') {
+      box(-hw, hw, -hd, hd, it.h - 45, it.h, main, true);
+      for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const cx = sx * (hw - 80);
+        const cy = sy * (hd - 80);
+        box(cx - 40, cx + 40, cy - 40, cy + 40, 0, it.h - 45, dark);
+      }
+      // Chairs: one at each end when there are enough, the rest shared along the two long sides.
+      const ends = it.chairs >= 6 ? 2 : 0;
+      const perSide = Math.floor((it.chairs - ends) / 2);
+      const chair = (cx: number, cy: number, backX: number, backY: number) => {
+        box(cx - 220, cx + 220, cy - 220, cy + 220, 420, 460, dark, true);
+        for (const [lx, ly] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(cx + lx * 190 - 20, cx + lx * 190 + 20, cy + ly * 190 - 20, cy + ly * 190 + 20, 0, 420, dark);
+        const bx = cx + backX * 200;
+        const by = cy + backY * 200;
+        if (backX) box(bx - 20, bx + 20, cy - 220, cy + 220, 460, 980, dark, true);
+        else box(cx - 220, cx + 220, by - 20, by + 20, 460, 980, dark, true);
+      };
+      for (let i = 0; i < perSide; i++) {
+        const cx = -hw + (it.w / perSide) * (i + 0.5);
+        chair(cx, -hd - 130, 0, -1);
+        chair(cx, hd + 130, 0, 1);
+      }
+      if (ends) { chair(-hw - 130, 0, -1, 0); chair(hw + 130, 0, 1, 0); }
+    } else {
+      box(-hw, hw, -hd, hd, it.lift || 0, (it.lift || 0) + it.h, main, true);
+    }
+  }
 
   scene.add(new THREE.HemisphereLight('#ffffff', '#cfc8bc', 1.0));
   const sun = new THREE.DirectionalLight('#ffffff', 0.6);
@@ -313,23 +470,42 @@ export async function mountKitchen(
   renderer.domElement.style.touchAction = 'none';
 
   const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 60);
-  const cx = ((bounds.minX + bounds.maxX) / 2) * MM;
-  const cz = ((bounds.minZ + bounds.maxZ) / 2) * MM;
   const controls = new OrbitControls(camera, renderer.domElement);
+  if (inward.length() < 0.01) inward.set(0, 1);
+  inward.normalize();
+  const view = (which: 'room' | 'kitchen') => {
+    const indoor = l.zones.filter((z) => z.floor !== 'deck');
+    if (which === 'room' && indoor.length) {
+      // High up over one corner, looking across the whole floor.
+      const x0 = Math.min(...indoor.map((z) => z.x));
+      const x1 = Math.max(...indoor.map((z) => z.x + z.w));
+      const z0 = Math.min(...indoor.map((z) => z.y));
+      const z1 = Math.max(...indoor.map((z) => z.y + z.d));
+      const R = Math.max(x1 - x0, z1 - z0) * MM;
+      const mx = ((x0 + x1) / 2) * MM;
+      const mz = ((z0 + z1) / 2) * MM;
+      camera.position.set(mx - inward.x * R * 0.15 - R * 0.55, R * 1.0, mz + R * 0.95);
+      controls.target.set(mx, 0.6, mz - R * 0.08);
+    } else {
+      // Standing in the open side of the kitchen, looking in.
+      const cx = ((kb.minX + kb.maxX) / 2) * MM;
+      const cz = ((kb.minZ + kb.maxZ) / 2) * MM;
+      const reach = Math.max(kb.maxX - kb.minX, kb.maxZ - kb.minZ) * MM;
+      camera.position.set(cx + inward.x * reach * 1.15, 1.8, cz + inward.y * reach * 1.15);
+      controls.target.set(cx - inward.x * reach * 0.1, 1.15, cz - inward.y * reach * 0.1);
+    }
+    controls.update();
+  };
   if (keep) {
     camera.position.set(...keep.pos);
     controls.target.set(...keep.target);
   } else {
-    if (inward.length() < 0.01) inward.set(0, 1);
-    inward.normalize();
-    const reach = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ) * MM;
-    camera.position.set(cx + inward.x * reach * 1.15, 1.8, cz + inward.y * reach * 1.15);
-    controls.target.set(cx - inward.x * reach * 0.1, 1.15, cz - inward.y * reach * 0.1);
+    view(fullRoom ? 'room' : 'kitchen');
   }
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.minDistance = 0.4;
-  controls.maxDistance = 14;
+  controls.maxDistance = fullRoom ? 30 : 14;
 
   const size = () => {
     const wpx = Math.max(1, el.clientWidth);
@@ -345,13 +521,15 @@ export async function mountKitchen(
   ro.observe(el);
 
   let alive = true;
-  const frame = () => {
+  const tick = () => {
     if (!alive) return;
     controls.update();
+    // Outside walls disappear when you are looking in from behind them.
+    for (const h of hideable) h.group.visible = (camera.position.x - h.px) * h.nx + (camera.position.z - h.pz) * h.nz > 0;
     renderer.render(scene, camera);
-    requestAnimationFrame(frame);
+    requestAnimationFrame(tick);
   };
-  frame();
+  tick();
 
   return {
     dispose() {
@@ -362,6 +540,7 @@ export async function mountKitchen(
       renderer.dispose();
       renderer.domElement.remove();
     },
+    view,
     camera: () => ({ pos: camera.position.toArray() as [number, number, number], target: controls.target.toArray() as [number, number, number] }),
   };
 }

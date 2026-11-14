@@ -42,7 +42,8 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
     let cancelled = false;
     const el = box.current;
     if (!el) return;
-    void (async () => {
+    // Wait a moment before rebuilding, so that typing a number or dragging does not rebuild on every step.
+    const timer = window.setTimeout(() => void (async () => {
       try {
         const [{ mountKitchen }, splash, floor, bench] = await Promise.all([
           import('./scene3d'),
@@ -51,6 +52,7 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
           layout.benchPhoto ? photoUrl(layout.benchPhoto) : Promise.resolve(null),
         ]);
         if (cancelled) return;
+        if (mounted.current) cam.current = mounted.current.camera();
         const next = await mountKitchen(el, layout, option, finish, { splash, floor, bench }, cam.current);
         if (cancelled) { next.dispose(); return; }
         mounted.current?.dispose();
@@ -59,17 +61,26 @@ export function Kitchen3D({ project, layout, option }: { project: Project; layou
       } catch {
         if (!cancelled) setProblem('The 3D view could not be shown on this device.');
       }
-    })();
+    })(), mounted.current ? 250 : 0);
     return () => {
       cancelled = true;
-      if (mounted.current) { cam.current = mounted.current.camera(); mounted.current.dispose(); mounted.current = null; }
+      window.clearTimeout(timer);
     };
   }, [signature]);
+  // Tidy up when leaving the screen.
+  useEffect(() => () => { mounted.current?.dispose(); mounted.current = null; }, []);
 
   return (
     <div>
       <div class="view3d" ref={box} data-testid="view3d" />
       {problem && <p class="notice">{problem}</p>}
+      {layout.zones.length > 0 && (
+        <div class="row-actions">
+          <span class="muted" style="margin:0">Look at:</span>
+          <button type="button" class="btn small" onClick={() => mounted.current?.view('room')}>The whole room</button>
+          <button type="button" class="btn small" onClick={() => mounted.current?.view('kitchen')}>The kitchen</button>
+        </div>
+      )}
       <p class="muted">Drag to look around, pinch or scroll to zoom. {finish.words.join(' · ')}</p>
     </div>
   );

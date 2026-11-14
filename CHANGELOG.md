@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Layout: oven, cooktop, rangehood and dishwasher are drawn at their real sizes and finishes; furniture can sit off the floor (for a wall-mounted TV).
+- Layout: the whole room can be drawn (floor areas, walls with windows and doors, a deck) with furniture that can be dragged on a top-down plan; the 3D view shows it all and has whole-room and kitchen viewpoints.
+- Layout: the fridge is drawn at its real size, and a wall unit can sit at its own height (such as an open box over the fridge).
 - Layout: a shade control to make the wall tiles in the 3D view lighter, warmer or cooler.
 - The styling is now built into the page, so the app can no longer appear unstyled if it is opened while the site is updating. If the app fails to start, the page reloads itself once and then offers a reload button.
 - Costs: each option can be given a colour, which the 3D view uses for doors, handles and benchtop.

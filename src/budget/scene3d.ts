@@ -422,7 +422,17 @@ export async function mountKitchen(
         box(at, o.from, d0, d1, 0, l.ceiling, M.wall);
         box(o.from, o.from + o.w, d0, d1, 0, o.sill, M.wall);
         box(o.from, o.from + o.w, d0, d1, o.sill + o.h, l.ceiling, M.wall);
-        if (o.kind !== 'door') {
+        if (o.kind === 'door') {
+          // The frame round the doorway, and the door itself if it is drawn shut.
+          const mid = (d0 + d1) / 2;
+          box(o.from - 45, o.from, d0 - 8, d1 + 8, 0, o.h + 45, M.frame);
+          box(o.from + o.w, o.from + o.w + 45, d0 - 8, d1 + 8, 0, o.h + 45, M.frame);
+          box(o.from - 45, o.from + o.w + 45, d0 - 8, d1 + 8, o.h, o.h + 45, M.frame);
+          if (o.closed) {
+            box(o.from + 3, o.from + o.w - 3, mid - 18, mid + 18, 8, o.h - 3, M.frame, true);
+            box(o.from + o.w - 95, o.from + o.w - 55, mid - 50, mid + 50, 1000, 1040, M.handle);
+          }
+        } else {
           const mid = (d0 + d1) / 2;
           box(o.from, o.from + o.w, mid - 4, mid + 4, o.sill, o.sill + o.h, glass);
           box(o.from + o.w / 2 - 18, o.from + o.w / 2 + 18, mid - 20, mid + 20, o.sill, o.sill + o.h, M.frame);
@@ -485,7 +495,8 @@ export async function mountKitchen(
   // Soft all-round reflections, so steel and handles look like metal rather than black.
   const pmrem = track(new THREE.PMREMGenerator(renderer));
   scene.environment = track(pmrem.fromScene(new RoomEnvironment(), 0.04)).texture;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // Realistic lighting is heavier to draw, so it uses slightly fewer pixels on very sharp screens.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, realistic ? 1.5 : 2));
   el.appendChild(renderer.domElement);
   renderer.domElement.style.display = 'block';
   renderer.domElement.style.touchAction = 'none';

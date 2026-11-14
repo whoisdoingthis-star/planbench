@@ -56,6 +56,8 @@ export interface Opening {
   w: number;
   sill: number;
   h: number;
+  /** For a door: draw it shut, with its leaf in place. */
+  closed?: boolean;
 }
 
 /** A wall of the room, seen from above, from one end to the other. */
@@ -254,7 +256,7 @@ export function normaliseLayout(raw: unknown): Layout | undefined {
     zones: arr(r.zones).map((z) => ({ id: s(z.id) || newId(), name: s(z.name, 'Area'), x: num(z.x, 0), y: num(z.y, 0), w: n(z.w, 3000), d: n(z.d, 3000), floor: pick(z.floor, ['tile', 'carpet', 'deck', 'plain'] as const, 'plain') })),
     roomWalls: arr(r.roomWalls).map((w) => ({
       id: s(w.id) || newId(), x1: num(w.x1, 0), y1: num(w.y1, 0), x2: num(w.x2, 0), y2: num(w.y2, 0), outer: w.outer !== false,
-      openings: arr(w.openings).map((o) => ({ kind: pick(o.kind, ['window', 'slider', 'door'] as const, 'window'), from: n(o.from, 0), w: n(o.w, 900), sill: n(o.sill, 0), h: n(o.h, 2000) })),
+      openings: arr(w.openings).map((o) => ({ kind: pick(o.kind, ['window', 'slider', 'door'] as const, 'window'), from: n(o.from, 0), w: n(o.w, 900), sill: n(o.sill, 0), h: n(o.h, 2000), ...(o.closed === true ? { closed: true } : {}) })),
     })),
     items: arr(r.items).map((i) => ({
       id: s(i.id) || newId(), name: s(i.name, 'Furniture'), kind: pick(i.kind, ['table', 'rug', 'sofa', 'box'] as const, 'box'),

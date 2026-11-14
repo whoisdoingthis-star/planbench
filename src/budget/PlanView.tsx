@@ -96,7 +96,7 @@ export function PlanView({ layout: l, changed }: { layout: Layout; changed: () =
           return (
             <g key={w.id} transform={`translate(${w.x1} ${w.y1}) rotate(${ang})`}>
               <line x1={0} y1={0} x2={len} y2={0} stroke="#3d4650" stroke-width="70" />
-              {w.openings.map((o, i) => <line key={i} x1={o.from} y1={0} x2={o.from + o.w} y2={0} stroke={o.kind === 'door' ? '#ffffff' : '#8fc7e6'} stroke-width="52" />)}
+              {w.openings.map((o, i) => <line key={i} x1={o.from} y1={0} x2={o.from + o.w} y2={0} stroke={o.kind === 'door' ? (o.closed ? '#d9c9a8' : '#ffffff') : '#8fc7e6'} stroke-width="52" />)}
             </g>
           );
         })}

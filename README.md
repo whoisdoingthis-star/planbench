@@ -4,6 +4,12 @@ A friendly CAD programme that runs in the web browser, on a laptop or a tablet.
 It is for opening drawings, measuring them, and (in later stages) designing home
 renovation layouts and concept sketches.
 
+## Using it
+
+Open <https://whoisdoingthis-star.github.io/planbench/> in a browser on a laptop
+or tablet. Nothing needs installing. The site updates itself a few minutes after
+every change to this repository.
+
 ## What it does today
 
 - Opens **DXF** drawings (drag a file in, or press *Open a file*).

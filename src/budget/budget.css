@@ -148,3 +148,6 @@
 .option-card .section-name { width: 100%; font-size: 18px; }
 .view3d { width: 100%; height: min(68vh, 640px); min-height: 320px; border-radius: 12px; overflow: hidden; background: #dfe6ec; margin-top: 12px; cursor: grab; }
 .build { text-align: center; color: #7a848f; font-size: 13px; margin: 0; padding: 0 0 18px; }
+.swatch-row { display: flex; align-items: center; gap: 8px; }
+.swatch-row input[type=color] { width: 54px; height: 42px; padding: 2px; }
+.swatch-row .muted { margin: 0; font-size: 14px; }

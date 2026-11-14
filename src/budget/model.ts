@@ -14,6 +14,8 @@ export interface Option {
   link: string;
   notes: string;
   photoId?: string;
+  /** The colour to draw this option in on the 3D view, e.g. "#f4f4f1". */
+  swatch?: string;
 }
 
 export interface Item {

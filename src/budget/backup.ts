@@ -35,6 +35,7 @@ export function normaliseProject(raw: unknown): Project {
         link: str(o.link),
         notes: str(o.notes),
         ...(str(o.photoId) ? { photoId: str(o.photoId) } : {}),
+        ...(/^#[0-9a-fA-F]{6}$/.test(str(o.swatch)) ? { swatch: str(o.swatch) } : {}),
       }));
       const chosen = options.some((o) => o.id === i.chosen) ? str(i.chosen) : null;
       return { id: str(i.id) || newId(), name: str(i.name), qty: num(i.qty, 1), unit: str(i.unit, 'each'), options, chosen, included: i.included !== false, notes: str(i.notes) };

@@ -298,6 +298,12 @@ function ItemEditor({ p, s, item, changed, close }: { p: Project; s: Section; it
                   <label class="grow">Notes
                     <input value={o.notes} onInput={(e) => { o.notes = e.currentTarget.value; changed(); }} />
                   </label>
+                  <label>Colour in the 3D view
+                    <span class="swatch-row">
+                      <input type="color" aria-label="Colour in the 3D view" value={o.swatch ?? '#f6f6f3'} onInput={(e) => { o.swatch = e.currentTarget.value; changed(); }} />
+                      {o.swatch ? <button type="button" class="link" onClick={() => { delete o.swatch; changed(); }}>Clear</button> : <span class="muted">not set</span>}
+                    </span>
+                  </label>
                 </div>
                 <div class="option-foot">
                   <span class="option-total">{$(cost)}</span>

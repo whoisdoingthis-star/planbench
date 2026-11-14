@@ -7,20 +7,24 @@ import { photoUrl } from './store';
 
 /** Reads the look of the kitchen from what has been chosen on the Costs screen. */
 export function finishFrom(p: Project): Finish & { words: string[] } {
-  const pick = (re: RegExp) => {
-    for (const s of p.sections) for (const i of s.items) if (re.test(i.name) && i.included) return chosenOption(i)?.name ?? '';
-    return '';
+  const find = (re: RegExp) => {
+    for (const s of p.sections) for (const i of s.items) if (re.test(i.name) && i.included) return chosenOption(i);
+    return null;
   };
-  const handles = pick(/handle/i);
-  const colour = pick(/door colour/i);
-  const benchName = pick(/^benchtop/i);
+  const handleOpt = find(/handle/i);
+  const colourOpt = find(/door colour/i);
+  const benchOpt = find(/^benchtop/i);
+  const handles = handleOpt?.name ?? '';
+  const colour = colourOpt?.name ?? '';
+  const benchName = benchOpt?.name ?? '';
   const brass = /brass|gold/i.test(handles);
   const black = /black/i.test(handles);
-  const upgrade = /upgrade|grey|gray|seal|baikal|spinifex/i.test(colour);
+  const grey = /grey|gray|seal|baikal|spinifex/i.test(colour);
   return {
-    door: upgrade ? '#8f969b' : '#f6f6f3',
-    handle: brass ? '#b8935a' : black ? '#26282b' : '#b9bdc2',
-    bench: /black|dark/i.test(benchName) ? '#3a3d41' : '#ece8de',
+    // A colour set on the chosen option wins; otherwise guess from its name.
+    door: colourOpt?.swatch ?? (grey ? '#8f969b' : '#f6f6f3'),
+    handle: handleOpt?.swatch ?? (brass ? '#b8935a' : black ? '#26282b' : '#b9bdc2'),
+    bench: benchOpt?.swatch ?? (/black|dark/i.test(benchName) ? '#3a3d41' : '#ece8de'),
     words: [colour && `Doors: ${colour}`, handles && `Handles: ${handles}`, benchName && `Benchtop: ${benchName}`].filter(Boolean) as string[],
   };
 }

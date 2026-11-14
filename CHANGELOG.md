@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Costs: each option can be given a colour, which the 3D view uses for doors, handles and benchtop.
 - The app shows its version (build date and time) at the bottom of each screen.
 - Layout: the benchtop pattern repeats without visible joins.
 - Layout: the 3D benchtop can show a photo of the real surface.

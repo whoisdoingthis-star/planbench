@@ -20,6 +20,9 @@ every change to this repository.
 - Pick one option per item and the **total updates straight away**, with an
   allowance for surprises and the GST shown. Each option says how much more or
   less it costs than your current choice.
+- **Where the money stands**: for each shop or tradesperson, record whether you
+  have gone ahead and what you have paid; see what is paid, still owed, and not
+  yet committed.
 - Save your choices as a **version** ("Budget", "Dream") and compare versions side by side.
 - An option can carry its **real size and colour**. The Layout screen draws the
   chosen fridge at that size and says whether it fits its space, so swapping an

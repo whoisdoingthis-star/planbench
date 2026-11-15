@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import {
   type Item, type Option, type Project, type Section, type Version,
-  UNITS, applyVersion, chosenOption, itemCost, money, newId, newItem, newOption, optionCost, replaceProject, saveVersion, toCsv, totals,
+  NO_SUPPLIER, UNITS, applyVersion, chosenOption, moneyPosition, itemCost, money, newId, newItem, newOption, optionCost, replaceProject, saveVersion, toCsv, totals,
 } from './model';
 import { exportBackup, importBackup } from './backup';
 import { deletePhoto, storePhoto } from './store';
@@ -93,6 +93,8 @@ export function BudgetView({ project: p, changed }: Props) {
         </details>
       </section>
 
+      <Money p={p} changed={changed} />
+
       <Versions p={p} changed={changed} comparing={comparing} setComparing={setComparing} />
 
       {p.sections.map((s) => (
@@ -110,6 +112,49 @@ export function BudgetView({ project: p, changed }: Props) {
         </label>
       </div>
     </div>
+  );
+}
+
+/** Who has been paid, who you are tied in to, and what is still only a quote. */
+function Money({ p, changed }: { p: Project; changed: () => void }) {
+  const m = moneyPosition(p);
+  const $ = (n: number) => money(n, p.currency);
+  if (!m.rows.length) return null;
+  const state = (name: string) => ((p.suppliers ??= {})[name] ??= { status: 'quote', paid: 0 });
+  return (
+    <section class="card money" data-testid="money">
+      <h2>Where the money stands</h2>
+      <p class="muted">For each shop or tradesperson, say whether you have gone ahead with them and what you have paid so far.</p>
+      <div class="money-totals">
+        <div><span>Paid so far</span><strong data-testid="money-paid">{$(m.paid)}</strong></div>
+        <div><span>Still to pay on what you've committed to</span><strong data-testid="money-owing">{$(m.owing)}</strong></div>
+        <div><span>Not committed yet</span><strong data-testid="money-open">{$(m.open)}</strong></div>
+      </div>
+      <div class="table-scroll">
+        <table class="compare money-table">
+          <thead><tr><th>Who</th><th>Their items</th><th>Where it stands</th><th>Paid so far</th><th>Still to pay</th></tr></thead>
+          <tbody>
+            {m.rows.map((r) => (
+              <tr key={r.name}>
+                <th>{r.name}</th>
+                <td>{$(r.total)}</td>
+                <td>
+                  {r.name === NO_SUPPLIER ? '—' : (
+                    <select aria-label={`Where it stands with ${r.name}`} value={r.status} onChange={(e) => { state(r.name).status = e.currentTarget.value === 'committed' ? 'committed' : 'quote'; changed(); }}>
+                      <option value="quote">Only a quote</option>
+                      <option value="committed">Gone ahead</option>
+                    </select>
+                  )}
+                </td>
+                <td>{r.name === NO_SUPPLIER ? '—' : <NumberBox prefix="$" label={`Paid so far to ${r.name}`} value={r.paid} onValue={(n) => { state(r.name).paid = n; changed(); }} />}</td>
+                <td>{r.status === 'committed' ? $(r.owing) : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">These figures cover the options you have chosen. The allowance for surprises is not included.</p>
+    </section>
   );
 }
 

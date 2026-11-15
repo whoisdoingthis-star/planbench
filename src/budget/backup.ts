@@ -15,6 +15,15 @@ const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : d);
 const num = (v: unknown, d = 0): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : d);
 const list = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'object' && x !== null) : []);
 
+function suppliersOf(v: unknown): Project['suppliers'] | undefined {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return undefined;
+  const out: NonNullable<Project['suppliers']> = {};
+  for (const [k, raw] of Object.entries(v as Record<string, Record<string, unknown>>)) {
+    if (raw && typeof raw === 'object') out[k] = { status: raw.status === 'committed' ? 'committed' : 'quote', paid: num(raw.paid) };
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function sizeOf(v: unknown): { w: number; d: number; h: number } | undefined {
   const r = v as Record<string, unknown> | null;
   if (!r || typeof r !== 'object') return undefined;
@@ -69,6 +78,7 @@ export function normaliseProject(raw: unknown): Project {
     versions,
     photos,
     ...(normaliseLayout(r.layout) ? { layout: normaliseLayout(r.layout) } : {}),
+    ...(suppliersOf(r.suppliers) ? { suppliers: suppliersOf(r.suppliers) } : {}),
   };
 }
 

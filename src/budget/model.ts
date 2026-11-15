@@ -60,6 +60,12 @@ export interface Photo {
   addedAt: string;
 }
 
+/** Whether you are tied in to a supplier yet, and what you have paid them. */
+export interface SupplierState {
+  status: 'quote' | 'committed';
+  paid: number;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -71,6 +77,8 @@ export interface Project {
   sections: Section[];
   versions: Version[];
   photos: Photo[];
+  /** Where things stand with each shop or tradesperson, keyed by their name as written on the options. */
+  suppliers?: Record<string, SupplierState>;
   /** Wall views and height options. Absent until the Layout screen is first used. */
   layout?: import('./layout').Layout;
 }
@@ -252,4 +260,48 @@ export function replaceProject(target: Project, next: Project): void {
   Object.assign(t, JSON.parse(JSON.stringify(next)));
   target.versions ??= [];
   target.photos ??= [];
+}
+
+export interface SupplierRow {
+  name: string;
+  /** Total of the chosen options from this supplier. */
+  total: number;
+  status: 'quote' | 'committed';
+  paid: number;
+  /** Still to pay on work you are tied in to (0 for a quote). */
+  owing: number;
+}
+
+export interface MoneyPosition {
+  rows: SupplierRow[];
+  paid: number;
+  /** Still to pay to suppliers you are committed to. */
+  owing: number;
+  /** Chosen items from suppliers you could still walk away from. */
+  open: number;
+}
+
+export const NO_SUPPLIER = 'No supplier yet';
+
+/** Splits the chosen items by supplier and shows what is paid, what is owed, and what is still only a quote. */
+export function moneyPosition(p: Project): MoneyPosition {
+  const totalsC = new Map<string, number>();
+  for (const s of p.sections) {
+    for (const i of s.items) {
+      const o = chosenOption(i);
+      if (!o || !i.included) continue;
+      const name = o.supplier.trim() || NO_SUPPLIER;
+      totalsC.set(name, (totalsC.get(name) ?? 0) + Math.round(itemCost(i) * 100));
+    }
+  }
+  const rows: SupplierRow[] = [...totalsC].map(([name, c]) => {
+    const st = p.suppliers?.[name];
+    const paid = Math.max(0, st?.paid ?? 0);
+    const status = st?.status === 'committed' ? 'committed' : 'quote';
+    const total = c / 100;
+    return { name, total, status, paid, owing: status === 'committed' ? Math.max(0, Math.round((total - paid) * 100) / 100) : 0 };
+  });
+  rows.sort((a, b) => b.total - a.total);
+  const sum = (f: (r: SupplierRow) => number) => Math.round(rows.reduce((n, r) => n + f(r) * 100, 0)) / 100;
+  return { rows, paid: sum((r) => r.paid), owing: sum((r) => r.owing), open: sum((r) => (r.status === 'quote' ? Math.max(0, r.total - r.paid) : 0)) };
 }

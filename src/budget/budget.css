@@ -156,3 +156,10 @@
 .plan-editor { align-items: flex-end; background: #f5f7f9; border-radius: 12px; padding: 12px; }
 .size-row { display: flex; gap: 6px; }
 .numbox.tiny3 input { width: 78px; }
+.money-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 12px 0; }
+.money-totals div { background: #f3f6f9; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.money-totals span { color: #5b6672; font-size: 15px; }
+.money-totals strong { font-size: 26px; }
+.money-table th:first-child { max-width: 320px; }
+.money-table select { font-size: 16px; padding: 6px 8px; }
+.money-table .numbox input { width: 120px; }

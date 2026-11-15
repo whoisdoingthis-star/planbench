@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normaliseProject } from '../src/budget/backup';
+import { moneyPosition } from '../src/budget/model';
 import { type Project, applyVersion, itemCost, kitchenTemplate, newItem, newOption, optionCost, saveVersion, toCsv, totals } from '../src/budget/model';
 
 function small(): Project {
@@ -89,5 +90,21 @@ describe('budget sums', () => {
     expect(p.versions).toEqual([]);
     expect(p.photos).toEqual([{ id: 'p1', group: 'ideas', caption: '', addedAt: '' }]);
     expect(() => normaliseProject({ nope: true })).toThrow(/Planbench project/);
+  });
+
+  it('shows what is paid, owed and still only a quote, by supplier', () => {
+    const p = small();
+    p.sections[0].items[0].options[0].supplier = 'Cabinet shop';
+    p.sections[1].items[0].options[0].supplier = 'Sparky Ltd';
+    let m = moneyPosition(p);
+    expect(m.rows.map((r) => [r.name, r.total, r.status])).toEqual([['Sparky Ltd', 737.5, 'quote'], ['Cabinet shop', 456, 'quote']]);
+    expect([m.paid, m.owing, m.open]).toEqual([0, 0, 1193.5]);
+    p.suppliers = { 'Cabinet shop': { status: 'committed', paid: 136.8 } };
+    m = moneyPosition(p);
+    expect([m.paid, m.owing, m.open]).toEqual([136.8, 319.2, 737.5]);
+    // Items with nothing chosen, or left out, are not counted.
+    p.sections[1].items[0].included = false;
+    expect(moneyPosition(p).open).toBe(0);
+    expect(normaliseProject({ sections: [], suppliers: { A: { status: 'committed', paid: 5 }, B: 'junk' } }).suppliers).toEqual({ A: { status: 'committed', paid: 5 } });
   });
 });
